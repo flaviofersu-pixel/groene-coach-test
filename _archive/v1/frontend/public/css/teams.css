@@ -1,0 +1,178 @@
+/*
+ * teams.css — styles for the simulated Microsoft Teams tab (dashboard).
+ */
+
+.teams { min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
+
+/* --- Top bar ------------------------------------------------------------- */
+.teams-topbar {
+  display: flex; align-items: center; gap: 12px;
+  min-height: 48px; padding: 6px 16px;
+  background: color-mix(in srgb, var(--brand) 12%, var(--bg)); /* adapts to both themes */
+  border-bottom: 1px solid var(--border);
+}
+.teams-search {
+  flex: 1 1 200px; max-width: 420px; height: 32px; padding: 0 12px;
+  display: flex; align-items: center;
+  border-radius: 6px; background: var(--surface); color: var(--text-muted);
+}
+.sim-user { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-left: auto; min-width: 0; }
+.sim-user-label { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.sim-link { font-weight: 600; }
+
+/* --- Shell: rail + main -------------------------------------------------- */
+.teams-shell { flex: 1; display: flex; min-width: 0; }
+.teams-rail {
+  flex: none; width: 68px; padding: 8px 0;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  background: var(--bg); border-right: 1px solid var(--border);
+}
+.rail-item {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  width: 60px; padding: 6px 0; border-radius: 6px;
+  color: var(--text-2); font-size: 10px;
+}
+.rail-item svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.rail-item--active { color: var(--brand); position: relative; }
+.rail-item--active::before {
+  content: ""; position: absolute; left: -4px; top: 10px; bottom: 10px; width: 3px;
+  border-radius: 2px; background: var(--brand);
+}
+
+.teams-main { flex: 1; min-width: 0; padding: 0 24px 40px; }
+
+/* --- Tab header ---------------------------------------------------------- */
+.tab-header {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 4px 24px;
+  border-bottom: 1px solid var(--border); margin: 0 -24px 20px; padding: 0 24px;
+  background: var(--surface);
+}
+.tab-title { display: flex; align-items: center; gap: 8px; padding: 12px 0; }
+.tab-title h1 { font-size: 18px; font-weight: 700; }
+.tab-app-icon { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 6px; background: var(--success-soft); }
+.tabs { display: flex; gap: 4px; align-self: stretch; }
+.tab {
+  border: 0; background: transparent; padding: 0 10px; cursor: pointer;
+  color: var(--text-2); font-weight: 600; border-bottom: 3px solid transparent;
+}
+.tab[aria-selected="true"] { color: var(--text); border-bottom-color: var(--brand); }
+.tab:hover { color: var(--text); }
+
+.load-error { margin-bottom: 16px; padding: 10px 14px; border-radius: var(--radius); background: var(--danger-soft); }
+
+/* --- Greeting & KPIs ----------------------------------------------------- */
+.greeting { margin-bottom: 16px; }
+.greeting h2 { font-size: 22px; font-weight: 700; margin-bottom: 2px; }
+.muted { color: var(--text-2); }
+.small { font-size: 12px; }
+
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.kpi {
+  padding: 14px 16px; border-radius: var(--radius);
+  background: var(--surface); border: 1px solid var(--border);
+}
+.kpi-label { font-size: 13px; font-weight: 400; color: var(--text-2); }
+.kpi-value { font-size: 28px; font-weight: 600; line-height: 1.2; margin: 4px 0 2px; font-variant-numeric: tabular-nums; }
+.kpi-sub { font-size: 12px; color: var(--text-muted); }
+
+/* --- Panels -------------------------------------------------------------- */
+.panel {
+  padding: 16px; margin-bottom: 16px; border-radius: var(--radius);
+  background: var(--surface); border: 1px solid var(--border);
+  min-width: 0;
+}
+.panel-head { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; margin-bottom: 12px; }
+.panel-title { font-size: 15px; font-weight: 700; }
+.panel-title.spaced { margin-top: 20px; margin-bottom: 8px; }
+.panel-sub { font-size: 12px; color: var(--text-muted); }
+.grid-2 { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 0 16px; }
+.btn-sm { min-height: 28px; padding: 0 10px; font-size: 13px; }
+
+/* Segmented control (scope switch) */
+.segmented { display: inline-flex; padding: 2px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border); }
+.segmented button {
+  border: 0; background: transparent; padding: 4px 12px; border-radius: 6px; cursor: pointer;
+  color: var(--text-2); font-weight: 600; font-size: 13px;
+}
+.segmented button[aria-checked="true"] { background: var(--surface); color: var(--text); box-shadow: 0 1px 2px rgb(0 0 0 / 0.12); }
+
+/* --- Metaphor cards ------------------------------------------------------ */
+.metaphors { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.metaphor {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 14px; border-radius: var(--radius); background: var(--surface-2); border: 1px solid var(--border);
+}
+.metaphor-icon { flex: none; font-size: 28px; line-height: 1; }
+.metaphor-value { font-size: 20px; font-weight: 600; line-height: 1.25; }
+.metaphor-text { color: var(--text-2); font-size: 13px; margin-top: 2px; }
+.metaphor-empty { grid-column: 1 / -1; color: var(--text-2); padding: 8px 0; }
+
+/* --- Bar chart ----------------------------------------------------------- */
+.chart-key { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-2); margin-bottom: 10px; }
+.key-swatch { width: 10px; height: 10px; border-radius: 2px; background: var(--series-1); }
+.bars { display: flex; flex-direction: column; gap: 2px; }
+.bar-row {
+  display: grid; grid-template-columns: minmax(90px, 34%) 1fr; align-items: center; gap: 12px;
+  padding: 5px 4px; border-radius: 6px; cursor: default;
+}
+.bar-row:hover, .bar-row:focus-visible { background: var(--surface-2); }
+.bar-label { font-size: 13px; color: var(--text-2); overflow-wrap: anywhere; }
+.bar-row.is-highlight .bar-label { color: var(--text); font-weight: 600; }
+.bar-track { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.bar {
+  flex: none; height: 18px;
+  /* --pct (0..1) is set from JS; leave room for the value label */
+  width: calc(var(--pct, 0) * (100% - 72px));
+  border-radius: 0 4px 4px 0; /* square at the baseline, rounded data-end */
+  background: var(--series-muted);
+}
+.bar-row.is-highlight .bar { background: var(--series-1); }
+.bar-value { font-size: 12px; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* Tooltip */
+.tooltip {
+  position: fixed; z-index: 60; pointer-events: none;
+  max-width: 240px; padding: 8px 10px; border-radius: 6px;
+  background: var(--surface); color: var(--text); border: 1px solid var(--border); box-shadow: var(--shadow);
+  font-size: 12px;
+}
+.tooltip strong { display: block; font-size: 13px; margin-bottom: 2px; }
+
+/* Tables */
+.table-wrap { overflow-x: auto; }
+.data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.data-table th, .data-table td { padding: 6px 8px; border-bottom: 1px solid var(--grid); text-align: left; vertical-align: top; }
+.data-table th { color: var(--text-2); font-weight: 600; }
+.data-table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.data-table code { font-size: 12px; }
+
+/* --- Side panel ---------------------------------------------------------- */
+.choice-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 10px 0 8px; }
+.choice-value { font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.potential { margin-top: 16px; padding: 12px; border-radius: var(--radius); background: var(--brand-soft); }
+.potential a { font-weight: 600; }
+.recent { list-style: none; margin: 0; padding: 0; }
+.recent li { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--grid); font-size: 13px; }
+.recent li:last-child { border-bottom: 0; }
+.recent .recent-name { min-width: 0; overflow-wrap: anywhere; }
+.recent .recent-meta { flex: none; color: var(--text-2); text-align: right; font-variant-numeric: tabular-nums; }
+.recent-check { color: var(--success); font-weight: 700; margin-right: 4px; }
+
+/* --- Methodology tab ----------------------------------------------------- */
+.prose p, .prose ol { margin: 8px 0; max-width: 72ch; }
+.prose li { margin-bottom: 8px; }
+.prose code { font-size: 12px; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
+
+/* --- Responsive ---------------------------------------------------------- */
+@media (max-width: 900px) {
+  .grid-2 { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 640px) {
+  .teams-rail { display: none; }
+  .teams-main { padding: 0 16px 32px; }
+  .tab-header { margin: 0 -16px 16px; padding: 0 16px; }
+  .teams-search { display: none; }
+  .sim-user { margin-left: 0; }
+  .sim-user-text { display: none; }
+  .kpi-value { font-size: 24px; }
+}

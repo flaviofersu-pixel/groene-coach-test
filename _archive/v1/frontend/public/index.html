@@ -1,0 +1,110 @@
+<!doctype html>
+<!--
+  index.html — Desktop coaching widget (simulation)
+
+  Simulates the Klimaattool running as a background extension on the user's
+  VM desktop: a tray icon in the taskbar plus a non-intrusive notification card
+  in the bottom-right corner. Logic: js/widget.js
+-->
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Klimaattool Widget</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E%F0%9F%8C%BF%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/desktop.css">
+  <script type="module" src="js/widget.js"></script>
+</head>
+<body class="desktop">
+
+  <!-- Demo controls: NOT part of the product, used to switch simulated users. -->
+  <header class="sim-bar">
+    <span class="sim-badge">Simulatie</span>
+    <label class="sim-bar-user">
+      <span>Ingelogd als</span>
+      <select id="user-select" class="sim-select" aria-label="Gesimuleerde gebruiker"></select>
+    </label>
+    <button id="rescan" class="btn btn-secondary" type="button">Opnieuw scannen</button>
+    <a class="sim-bar-link" href="dashboard.html">Teams-dashboard openen →</a>
+  </header>
+
+  <!-- Simulated desktop -->
+  <main class="desktop-area" aria-label="Bureaublad (simulatie)">
+    <ul class="desktop-icons">
+      <li>
+        <a class="desktop-icon" href="dashboard.html">
+          <span class="desktop-icon-img desktop-icon-img--teams" aria-hidden="true">T</span>
+          <span>Teams · Klimaattool</span>
+        </a>
+      </li>
+      <li>
+        <span class="desktop-icon">
+          <span class="desktop-icon-img desktop-icon-img--onedrive" aria-hidden="true">☁</span>
+          <span>OneDrive (gesimuleerd)</span>
+        </span>
+      </li>
+    </ul>
+  </main>
+
+  <!-- Coaching notification. aria-live announces new cards without moving focus. -->
+  <section id="coach" class="coach" aria-live="polite" aria-label="Klimaattool-suggestie" hidden></section>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+
+  <!-- Simulated taskbar with the extension's tray icon -->
+  <footer class="taskbar">
+    <span class="taskbar-start" aria-hidden="true"></span>
+    <div class="tray">
+      <button id="tray-button" class="tray-button" type="button" aria-label="Klimaattool openen" title="Klimaattool">
+        <span aria-hidden="true">🌿</span>
+        <span id="tray-badge" class="tray-badge" hidden></span>
+      </button>
+      <time id="clock" class="clock"></time>
+    </div>
+  </footer>
+
+  <!-- Card template, filled with textContent by widget.js (no innerHTML = no XSS). -->
+  <template id="tpl-suggestion">
+    <article class="card" data-state="suggest">
+      <header class="card-head">
+        <span class="card-app"><span aria-hidden="true">🌿</span> Klimaattool</span>
+        <span class="card-counter" data-field="counter"></span>
+        <button class="icon-btn" type="button" data-action="minimize" aria-label="Minimaliseren naar systeemvak" title="Later bekijken">–</button>
+      </header>
+
+      <div class="card-body card-body--suggest">
+        <h2 class="card-title">Samen groener werken? 🌿</h2>
+        <p class="card-text">Dit bestand wordt intensief gedeeld. Zullen we het verhuizen naar SharePoint? Dit scheelt cloud-energie en zet het direct op de juiste plek voor je collega's.</p>
+
+        <div class="file-chip">
+          <span class="file-ext" data-field="ext"></span>
+          <div class="file-info">
+            <div class="file-name" data-field="filename"></div>
+            <div class="file-meta" data-field="meta"></div>
+          </div>
+        </div>
+
+        <p class="saving" data-field="saving"></p>
+        <p class="card-error" data-field="error" role="alert" hidden></p>
+
+        <div class="actions">
+          <button class="btn btn-primary" type="button" data-action="accept">Ja, verhuis het</button>
+          <button class="btn btn-secondary" type="button" data-action="decline">Nu niet</button>
+        </div>
+      </div>
+
+      <div class="card-body card-body--done">
+        <svg class="check" viewBox="0 0 48 48" aria-hidden="true">
+          <circle cx="24" cy="24" r="22" />
+          <path d="M14 25 l7 7 l13 -15" />
+        </svg>
+        <div>
+          <h2 class="card-title">Verhuisd naar SharePoint</h2>
+          <p class="card-text" data-field="done-text"></p>
+        </div>
+      </div>
+    </article>
+  </template>
+</body>
+</html>

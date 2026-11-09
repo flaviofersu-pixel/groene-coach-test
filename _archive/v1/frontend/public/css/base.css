@@ -1,0 +1,154 @@
+/*
+ * base.css — shared design tokens and primitives for both UIs.
+ *
+ * Colours are defined once as custom properties ("tokens") and redefined for
+ * dark mode, so components never hard-code a hex value. Dark mode follows the
+ * OS setting unless a page forces a theme with <html data-theme="light|dark">.
+ * Data-visualisation colours come from a CVD-validated categorical palette.
+ */
+
+:root {
+  color-scheme: light;
+  --font: "Segoe UI", "Segoe UI Web", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+
+  --bg: #f5f5f5;
+  --surface: #ffffff;
+  --surface-2: #fafafa;
+  --border: #e0e0e0;
+  --border-strong: #c7c7c7;
+
+  --text: #242424;
+  --text-2: #5c5c5c;
+  --text-muted: #767676;
+
+  --brand: #5b5fc7;          /* Teams-style purple: chrome, links, focus */
+  --brand-strong: #5b5fc7;   /* primary button background */
+  --brand-hover: #4f52b2;
+  --brand-soft: #e8ebfa;
+
+  --success: #0ca30c;        /* status: good (icon + label, never colour alone) */
+  --success-text: #0b6a0b;
+  --success-soft: #e7f4e7;
+  --danger: #d03b3b;
+  --danger-soft: #fbeaea;
+
+  --series-1: #2a78d6;       /* data: highlighted series */
+  --series-muted: #c9c8c2;   /* data: de-emphasised series */
+  --grid: #ebebeb;
+
+  --radius: 8px;
+  --radius-lg: 12px;
+  --shadow: 0 2px 4px rgb(0 0 0 / 0.06), 0 8px 24px rgb(0 0 0 / 0.10);
+  --focus: 0 0 0 2px var(--surface), 0 0 0 4px var(--brand);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #1f1f1f;
+    --surface: #292929;
+    --surface-2: #2e2e2e;
+    --border: #3d3d3d;
+    --border-strong: #575757;
+    --text: #f0efec;
+    --text-2: #c3c2b7;
+    --text-muted: #a3a29a;
+    --brand: #8f94f7;
+    --brand-strong: #4f52b2;
+    --brand-hover: #5b5fc7;
+    --brand-soft: #2f2f4a;
+    --success-text: #54c454;
+    --success-soft: #1c331c;
+    --danger-soft: #3a2222;
+    --series-1: #3987e5;
+    --series-muted: #55554f;
+    --grid: #383835;
+    --shadow: 0 2px 4px rgb(0 0 0 / 0.3), 0 8px 24px rgb(0 0 0 / 0.45);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #1f1f1f;
+  --surface: #292929;
+  --surface-2: #2e2e2e;
+  --border: #3d3d3d;
+  --border-strong: #575757;
+  --text: #f0efec;
+  --text-2: #c3c2b7;
+  --text-muted: #a3a29a;
+  --brand: #8f94f7;
+  --brand-strong: #4f52b2;
+  --brand-hover: #5b5fc7;
+  --brand-soft: #2f2f4a;
+  --success-text: #54c454;
+  --success-soft: #1c331c;
+  --danger-soft: #3a2222;
+  --series-1: #3987e5;
+  --series-muted: #55554f;
+  --grid: #383835;
+  --shadow: 0 2px 4px rgb(0 0 0 / 0.3), 0 8px 24px rgb(0 0 0 / 0.45);
+}
+
+/* --- Reset ---------------------------------------------------------------- */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3, p { margin: 0; }
+button, select, input { font: inherit; color: inherit; }
+a { color: var(--brand); }
+[hidden] { display: none !important; }
+:focus-visible { outline: none; box-shadow: var(--focus); border-radius: 4px; }
+
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap;
+}
+
+/* --- Buttons ------------------------------------------------------------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 32px; padding: 0 14px;
+  border-radius: 6px; border: 1px solid transparent;
+  font-weight: 600; cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+.btn:disabled { opacity: 0.6; cursor: progress; }
+.btn-primary { background: var(--brand-strong); color: #fff; }
+.btn-primary:hover:not(:disabled) { background: var(--brand-hover); }
+.btn-secondary { background: var(--surface); border-color: var(--border-strong); color: var(--text); }
+.btn-secondary:hover:not(:disabled) { background: var(--surface-2); }
+
+/* --- Simulation controls (clearly marked as not part of the product) ----- */
+.sim-badge {
+  display: inline-block; padding: 1px 8px; border-radius: 999px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+  background: #fff4ce; color: #5c4400; border: 1px solid #e8d48a;
+}
+.sim-select {
+  max-width: 100%; min-height: 30px; padding: 2px 8px;
+  border: 1px solid var(--border-strong); border-radius: 6px;
+  background: var(--surface);
+}
+
+/* --- Toast --------------------------------------------------------------- */
+.toast {
+  position: fixed; left: 50%; bottom: 72px; transform: translateX(-50%);
+  max-width: min(440px, calc(100vw - 32px));
+  padding: 10px 16px; border-radius: var(--radius);
+  background: var(--text); color: var(--bg); box-shadow: var(--shadow);
+  font-size: 13px; z-index: 50;
+  animation: toast-in 180ms ease-out;
+}
+@keyframes toast-in { from { opacity: 0; transform: translate(-50%, 8px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

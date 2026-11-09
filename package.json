@@ -1,0 +1,21 @@
+{
+  "name": "klimaattool-amsterdam",
+  "version": "2.0.0",
+  "description": "PoC v2 \"From Insight to Action\": Groene Coach, a Teams app + Outlook Smart Alert simulation that coaches Gemeente Amsterdam civil servants to move shared files to SharePoint, with honest CO2 bands.",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "start": "node scripts/start-all.js",
+    "start:backend": "node backend/server.js",
+    "start:frontend": "node frontend/server.js",
+    "seed": "node backend/db/seed.js",
+    "test": "node --test \"tests/**/*.test.js\""
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "express": "^5.3.0"
+  }
+}

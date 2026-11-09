@@ -1,0 +1,113 @@
+<!doctype html>
+<!--
+  outlook.html — Simulated Outlook on the web with a Groene Coach Smart Alert
+
+  Production counterpart: an Outlook event-based add-in on `OnMessageSend`
+  in "PromptUser" mode. When an attachment would be cloned into many
+  mailboxes (Rick van Kersbergen rule), the user gets a polite dialog with
+  "Deel als link" and always "Toch verzenden". Logic: js/outlook.js
+-->
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Outlook Smart Alert</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E%F0%9F%93%A7%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/outlook.css">
+  <script type="module" src="js/outlook.js"></script>
+</head>
+<body class="owa">
+  <header class="owa-topbar">
+    <span class="owa-brand">Outlook <span class="owa-brand-sub">(simulatie)</span></span>
+    <div class="owa-sim">
+      <span class="sim-badge">Simulatie</span>
+      <label class="owa-sim-label"><span class="owa-sim-text">Ingelogd als</span>
+        <select id="user-select" class="sim-select" aria-label="Gesimuleerde gebruiker"></select>
+      </label>
+      <a class="owa-link" href="index.html">← Groene Coach in Teams</a>
+    </div>
+  </header>
+
+  <div class="owa-shell">
+    <nav class="owa-folders" aria-label="Mappen (simulatie)">
+      <span class="owa-folder">Postvak IN</span>
+      <span class="owa-folder is-active">Concepten</span>
+      <span class="owa-folder">Verzonden items</span>
+    </nav>
+
+    <main class="owa-main">
+      <p id="load-error" class="owa-error" role="alert" hidden></p>
+
+      <!-- Compose form -->
+      <form id="compose" class="compose" novalidate>
+        <div class="compose-row">
+          <span class="compose-label">Van</span>
+          <span id="from" class="compose-value"></span>
+        </div>
+        <div class="compose-row">
+          <label class="compose-label" for="recipients">Aan</label>
+          <div class="compose-value recipients">
+            <span id="recipient-chip" class="chip"></span>
+            <input id="recipients" type="number" min="1" max="500" value="20" aria-describedby="recipient-help">
+            <span id="recipient-help" class="muted small">ontvangers</span>
+            <div class="presets" role="group" aria-label="Snelkeuze ontvangers">
+              <button type="button" class="btn btn-secondary btn-xs" data-recipients="1">1 collega</button>
+              <button type="button" class="btn btn-secondary btn-xs" data-recipients="5">Team (5)</button>
+              <button type="button" class="btn btn-secondary btn-xs" data-recipients="20">Afdeling (20)</button>
+              <button type="button" class="btn btn-secondary btn-xs" data-recipients="60">Directie (60)</button>
+            </div>
+          </div>
+        </div>
+        <div class="compose-row">
+          <label class="compose-label" for="subject">Onderwerp</label>
+          <input id="subject" class="compose-input" value="Ter info: laatste versie">
+        </div>
+        <div class="compose-row">
+          <label class="compose-label" for="attachment">Bijlage</label>
+          <div class="compose-value">
+            <select id="attachment" class="sim-select attachment-select"></select>
+          </div>
+        </div>
+        <textarea id="body" class="compose-body" aria-label="Berichttekst" rows="6">Beste collega's,
+
+In de bijlage vinden jullie de laatste versie.
+
+Groet,</textarea>
+        <div class="compose-actions">
+          <button type="submit" class="btn btn-primary" id="send">Verzenden</button>
+          <span id="send-status" class="muted small" role="status"></span>
+        </div>
+      </form>
+
+      <!-- Result after sending -->
+      <section id="result" class="result" aria-live="polite" hidden></section>
+    </main>
+
+    <!-- Explanation: the Rick van Kersbergen rule, visualised live -->
+    <aside class="owa-side" aria-labelledby="rule-title">
+      <h2 id="rule-title" class="side-title">Waarom deze melding?</h2>
+      <p class="muted">Een bijlage wordt in de mailbox van <strong>elke ontvanger</strong> apart opgeslagen. 1 bijlage aan 20 mensen = 20× opslag. Een link wijst naar één bestand.</p>
+      <div class="clones" id="clones" aria-hidden="true"></div>
+      <p id="clone-caption" class="small muted"></p>
+      <p class="small muted">De coach kijkt alleen naar de bestandsgrootte en het aantal ontvangers. Adressen, onderwerp en tekst blijven in Outlook.</p>
+    </aside>
+  </div>
+
+  <!-- Simulated Outlook Smart Alert dialog -->
+  <dialog id="smart-alert" class="smart-alert" aria-labelledby="sa-title" aria-describedby="sa-message">
+    <div class="sa-head">
+      <span class="sa-icon" aria-hidden="true">🌿</span>
+      <div>
+        <p class="sa-addin">Groene Coach</p>
+        <h2 id="sa-title" class="sa-title">Samen groener mailen?</h2>
+      </div>
+    </div>
+    <p id="sa-message" class="sa-message"></p>
+    <p id="sa-transfer" class="sa-transfer small"></p>
+    <div class="sa-actions" id="sa-actions"></div>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+</body>
+</html>

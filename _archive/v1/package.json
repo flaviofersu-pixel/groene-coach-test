@@ -1,0 +1,21 @@
+{
+  "name": "klimaattool-amsterdam",
+  "version": "1.0.0",
+  "description": "Proof of Concept: Data Lifecycle & Carbon Reduction Tool for a simulated Gemeente Amsterdam Microsoft 365 workspace. Coaches users to move heavily shared OneDrive files to SharePoint.",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "start": "node scripts/start-all.js",
+    "start:backend": "node backend/server.js",
+    "start:frontend": "node frontend/server.js",
+    "seed": "node backend/db/seed.js",
+    "test": "node --test"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "express": "^5.3.0"
+  }
+}
