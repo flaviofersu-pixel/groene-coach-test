@@ -63,22 +63,50 @@ async function loadView(id) {
 const loadActive = () => loadView(activeTab);
 
 /**
- * Accessible tabs (click + arrow keys).
+ * Shows one page. Actie-hub and Verkenner are tabs at the top; Impact and
+ * Privacy & berekening are pages opened from the footer (no tab button).
  * @param {string} id panel id, e.g. 'tab-explorer'
- * @param {{ focus?: boolean, view?: string, filter?: string }} [options]
- *   view/filter: open a specific part of that tab (used by the Actie-hub buttons)
+ * @param {{ focus?: boolean, focusHeading?: boolean, view?: string, filter?: string }} [options]
+ *   focus        move keyboard focus to the tab button (arrow-key navigation)
+ *   focusHeading move focus to the page heading (footer / back links), and scroll to the top
+ *   view/filter  open a specific part of that page (used by the Actie-hub buttons)
  */
-function showTab(id, { focus = false, view, filter } = {}) {
+function showTab(id, { focus = false, focusHeading = false, view, filter } = {}) {
   activeTab = id;
   if (view) views[id].select?.({ view, filter });
-  for (const tab of mainTabs()) {
-    const active = tab.getAttribute('aria-controls') === id;
+
+  for (const panel of document.querySelectorAll('.tab-panel')) panel.hidden = panel.id !== id;
+
+  // Tabs: the matching one is selected. On a footer page no tab is selected,
+  // but the first tab stays reachable with the Tab key.
+  const tabs = mainTabs();
+  const activeTabButton = tabs.find((tab) => tab.getAttribute('aria-controls') === id);
+  for (const tab of tabs) {
+    const active = tab === activeTabButton;
     tab.setAttribute('aria-selected', String(active));
-    tab.tabIndex = active ? 0 : -1;
-    $(tab.getAttribute('aria-controls')).hidden = !active;
+    tab.tabIndex = active || (!activeTabButton && tab === tabs[0]) ? 0 : -1;
     if (active && focus) tab.focus();
   }
+
+  // Footer links say which page is open.
+  for (const link of document.querySelectorAll('.footer-link')) {
+    if (link.dataset.open === id) link.setAttribute('aria-current', 'page');
+    else link.removeAttribute('aria-current');
+  }
+
+  if (focusHeading) {
+    window.scrollTo({ top: 0 });
+    $(id).querySelector('.page-title, h2')?.focus({ preventScroll: true });
+  }
   return loadActive();
+}
+
+/** Every element with data-open="<panel id>" (footer, back links, "Bekijk alle impact") opens that page. */
+function setupPageLinks() {
+  document.addEventListener('click', (e) => {
+    const link = e.target.closest('[data-open]');
+    if (link) showTab(link.dataset.open, { focusHeading: true });
+  });
 }
 
 function setupTabs() {
@@ -105,6 +133,7 @@ async function onSignedIn() {
 
 async function init() {
   setupTabs();
+  setupPageLinks();
   await loadCo2Factors(); // numbers for the CO2 info popovers
   // Another window changed something: refresh (ignored until signed in).
   updates?.addEventListener('message', () => { if (ctx.me) ctx.refreshAll({ broadcast: false }).catch(() => {}); });

@@ -277,6 +277,33 @@ body.is-dragging-file .sp-folder > summary .drop-hint { display: inline; }
 .move-target { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; font-weight: 600; }
 .move-estimate { margin-top: 10px; font-size: 13px; color: var(--text-2); }
 
+/* --- Actie-hub: "Wat je acties opleveren" --------------------------------- */
+.hub-impact { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.hub-impact-tile { padding: 12px 14px; border-radius: var(--radius); background: var(--surface-2); border: 1px solid var(--border); }
+.hub-impact-label { margin: 0 0 4px; font-size: 13px; font-weight: 600; color: var(--text-2); }
+.hub-impact-tile .co2-value { font-size: 18px; }
+/* Amount + "i" on one line, the example label below (same as the Impact tiles). */
+.hub-impact-tile .co2--stacked { display: grid; grid-template-columns: auto auto; justify-content: start; align-items: center; gap: 6px 0; }
+.hub-impact-tile .co2--stacked .co2-eq { grid-column: 1 / -1; justify-self: start; }
+.hub-impact-sub { margin-top: 6px; font-size: 12px; color: var(--text-muted); }
+
+/* --- Footer pages: heading with a way back ------------------------------------ */
+.page-head { margin-bottom: 16px; }
+.back-link { margin-bottom: 6px; font-size: 13px; }
+.page-title { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+.page-title:focus { outline: none; }
+
+/* --- Footer: small, at the end of the page (not sticky, saves space in Teams) - */
+.app-footer {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 16px;
+  margin-top: 32px; padding: 14px 0 0; border-top: 1px solid var(--border);
+  font-size: 12px; color: var(--text-muted);
+}
+.footer-nav { display: flex; flex-wrap: wrap; gap: 4px 18px; }
+.footer-link { border: 0; background: none; padding: 2px 0; color: var(--text-2); font-size: 12px; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.footer-link:hover { color: var(--brand); }
+.footer-link[aria-current="page"] { color: var(--text); font-weight: 600; text-decoration: none; }
+
 /* --- Responsive ---------------------------------------------------------- */
 @media (max-width: 960px) {
   .grid-2, .explorer-compare, .board { grid-template-columns: minmax(0, 1fr); }

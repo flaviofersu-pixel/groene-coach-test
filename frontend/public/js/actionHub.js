@@ -4,7 +4,9 @@
  * comparable to "Energy recommendations" in Windows Settings.
  *
  * Every action has a short title, the estimated saving (or an honest note
- * when we cannot put a number on it) and one button. The button opens the
+ * when we cannot put a number on it) and one button.
+ * Below the list, a small "Wat je acties opleveren" summary (you and your teams);
+ * the full Impact page is linked from there and from the footer. The button opens the
  * Verkenner with the right part (and filter) already selected; the actual
  * work (moving, cleaning up) always happens there, after the user's click.
  */
@@ -113,6 +115,25 @@ export function createActionHub(ctx) {
       control);
   }
 
+  /** One small tile of the impact summary. */
+  function impactTile(label, co2, sub) {
+    return append(el('article', 'hub-impact-tile'),
+      el('h4', 'hub-impact-label', label),
+      co2 ? co2Amount(co2, { suffix: ' per jaar', stacked: true }) : el('p', 'muted', 'Niet getoond'),
+      el('p', 'hub-impact-sub', sub));
+  }
+
+  /** "Wat je acties opleveren": your own saving and your teams' saving. */
+  function renderImpactSummary({ personal, my_teams: myTeams }) {
+    $('hub-impact').replaceChildren(
+      impactTile('Jouw bijdrage (alleen voor jou)', personal.co2_per_year,
+        personal.actions ? plural(personal.actions, 'actie', 'acties') : 'Nog geen acties: begin met een actie hierboven.'),
+      myTeams.suppressed
+        ? impactTile('Jouw teams', null, myTeams.reason)
+        : impactTile('Jouw teams', myTeams.co2_per_year,
+          `${plural(myTeams.team_count, 'team', 'teams')} · ${plural(myTeams.migrations, 'document', 'documenten')} naar de teamsite verhuisd`));
+  }
+
   function renderActions(actions) {
     const list = $('action-list');
     list.replaceChildren(...sortActions(actions).map(renderAction).filter(Boolean));
@@ -123,10 +144,12 @@ export function createActionHub(ctx) {
       $('hub-greeting').textContent = `Hoi ${firstName(ctx.me.user.display_name)} 👋`;
       if (!ctx.me.admin_consent_granted) {
         $('action-list').replaceChildren(el('li', 'empty', 'Er zijn nog geen acties: OpruimCoach heeft eerst toestemming van een beheerder nodig.'));
+        $('hub-impact').replaceChildren();
         return;
       }
-      const { actions } = await api.actions();
+      const [{ actions }, impact] = await Promise.all([api.actions(), api.impact()]);
       renderActions(actions);
+      renderImpactSummary(impact);
     },
   };
 }
