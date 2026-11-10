@@ -1,106 +1,68 @@
 /**
  * @file explorer.js
- * @description The "Verkenner" tab: SharePoint Mapper + before/after preview.
+ * @description The "Verkenner" tab: a small shell with four parts (sub-tabs).
  *
- * Shows how the user's OneDrive looks in Windows Explorer (via the standard
- * OneDrive sync client) before and after the coach: loose shared files gone,
- * the department library available with one click as a shortcut.
- * The preview is rendered in the browser; nothing on the laptop is modified.
+ *   Verhuizen             moveBoard.js   ready list + drag OneDrive -> SharePoint
+ *   Dubbele kopieën       duplicates.js
+ *   Mijn SharePoint-sites sites.js
+ *   Voor en na            preview.js     before/after preview in Windows Explorer
+ *
+ * The Actie-hub opens the Verkenner on a specific part via `select()`, e.g.
+ * { view: 'move', filter: 'old' } shows the OneDrive column filtered on old files.
  */
 
-import { api } from './api.js';
-import { el, append, button, icon, fileIcon, toast } from './dom.js';
-import { formatSize, plural } from './format.js';
-
-const $ = (id) => document.getElementById(id);
-
-const TAG_LABELS = {
-  'to-move': ['pill pill--warning', 'hoort op SharePoint'],
-  duplicate: ['pill pill--warning', 'dubbele kopie'],
-  moved: ['pill pill--success', 'verhuisd'],
-};
+import { createMoveBoard } from './moveBoard.js';
+import { createDuplicates } from './duplicates.js';
+import { createSites } from './sites.js';
+import { createPreview } from './preview.js';
 
 /** @param {object} ctx shared app context (see app.js) */
 export function createExplorer(ctx) {
-  /** One tree node (recursive). Folders use <details> for native, accessible collapse. */
-  function renderNode(node, { openFolders }) {
-    const li = el('li');
-    if (node.type === 'file') {
-      const row = append(el('div', `tree-row is-file${node.tag ? ` is-tagged-${node.tag}` : ''}`),
-        fileIcon(node.name), el('span', 'tree-name', node.name));
-      row.title = `${formatSize(node.size_mb)}${node.shared > 0 ? ' · gedeeld bestand' : ''}`;
-      if (node.tag) row.append(el('span', TAG_LABELS[node.tag][0], TAG_LABELS[node.tag][1]));
-      return append(li, row);
+  const parts = {
+    move: createMoveBoard(ctx),
+    duplicates: createDuplicates(ctx),
+    sites: createSites(ctx),
+    preview: createPreview(ctx),
+  };
+  const subtabs = [...document.querySelectorAll('#tab-explorer [role="tab"]')];
+  /** Filter requested by the Actie-hub, applied once the data is there. */
+  let pendingFilter = null;
+
+  /** Shows one part and marks its sub-tab as selected (accessible tabs pattern). */
+  function showView(view, { focus = false } = {}) {
+    for (const tab of subtabs) {
+      const active = tab.dataset.view === view;
+      tab.setAttribute('aria-selected', String(active));
+      tab.tabIndex = active ? 0 : -1;
+      document.getElementById(tab.getAttribute('aria-controls')).hidden = !active;
+      if (active && focus) tab.focus();
     }
-
-    const details = el('details');
-    const hasTagged = node.children.some((c) => c.tag || c.children?.some((cc) => cc.tag));
-    details.open = node.type === 'shortcut' || openFolders || hasTagged;
-    const row = append(el('div', `tree-row${node.type === 'shortcut' ? ' is-shortcut' : ''}`),
-      icon(node.type === 'shortcut' ? 'shortcut' : 'folder'), el('span', 'tree-name', node.name));
-    if (node.is_new) row.append(el('span', 'pill pill--brand', 'Nieuw'));
-    if (node.type === 'folder') row.append(el('span', 'small muted', `(${node.children.length + (node.more ?? 0)})`));
-
-    const ul = el('ul');
-    for (const child of node.children) ul.append(renderNode(child, { openFolders: false }));
-    if (node.more) ul.append(el('li', 'tree-more', `… en ${node.more} meer`));
-    if (node.children.length === 0) ul.append(el('li', 'tree-more', 'leeg'));
-    return append(li, append(details, append(el('summary'), row), ul));
   }
 
-  /** A Windows-Explorer-like window frame around a tree. */
-  function renderWindow(container, items, rootName, { openFolders }) {
-    const tree = el('ul', 'tree');
-    tree.setAttribute('aria-label', rootName);
-    for (const node of items) tree.append(renderNode(node, { openFolders }));
-    container.replaceChildren(
-      append(el('div', 'explorer-titlebar'), el('span', '', 'Verkenner'), el('span', 'explorer-dots', '— ▢ ✕')),
-      append(el('div', 'explorer-address'), icon('cloud'), el('span', '', `› ${rootName}`)),
-      append(el('div', 'explorer-tree'), tree));
-  }
-
-  function renderSites() {
-    const list = $('site-list');
-    list.replaceChildren();
-    for (const site of ctx.me.sites) {
-      const action = site.mapped
-        ? el('span', 'pill pill--success', '✓ In je OneDrive')
-        : button('Toon map in Verkenner', 'btn btn-primary btn-sm', async (e) => {
-          e.currentTarget.disabled = true;
-          try {
-            const r = await api.mapShortcut(site.id);
-            toast(`"${r.shortcut.name}" staat nu in je OneDrive en in Verkenner.`);
-            await ctx.refreshAll();
-          } catch (err) {
-            toast(err.message);
-            e.currentTarget.disabled = false;
-          }
-        });
-      list.append(append(el('li', 'site-card'), icon('shortcut'),
-        append(el('div', 'site-card-main'),
-          el('div', 'site-card-name', `${site.display_name} › ${site.library_name}`),
-          el('div', 'site-card-meta', site.department ? `Afdelingssite · ${site.role === 'owner' ? 'eigenaar' : 'lid'}` : 'Programmasite (afdelingsoverstijgend)')),
-        action));
-    }
-    if (ctx.me.sites.length === 0) list.append(el('li', 'empty', 'Geen SharePoint-sites beschikbaar (toestemming ontbreekt).'));
-  }
+  // Click + arrow keys, like the main tabs.
+  subtabs.forEach((tab, i) => {
+    tab.addEventListener('click', () => showView(tab.dataset.view));
+    tab.addEventListener('keydown', (e) => {
+      const step = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+      if (step) showView(subtabs[(i + step + subtabs.length) % subtabs.length].dataset.view, { focus: true });
+    });
+  });
 
   return {
+    /** Open a specific part (and filter); called by the Actie-hub buttons. */
+    select({ view = 'move', filter = null } = {}) {
+      showView(view);
+      pendingFilter = filter;
+      if (view === 'move') parts.move.applyFilter(filter); // works right away if already loaded
+    },
+
+    /** Loads all four parts in parallel; the shell reloads them after every change. */
     async load() {
-      renderSites();
-      if (!ctx.me.admin_consent_granted) {
-        $('explorer-before').replaceChildren();
-        $('explorer-after').replaceChildren();
-        $('explorer-summary').textContent = '';
-        return;
+      await Promise.all(Object.values(parts).map((part) => part.load()));
+      if (pendingFilter) {
+        parts.move.applyFilter(pendingFilter);
+        pendingFilter = null;
       }
-      const view = await api.explorer();
-      renderWindow($('explorer-before'), view.before.items, view.root_name, { openFolders: true });
-      renderWindow($('explorer-after'), view.after.items, view.root_name, { openFolders: true });
-      const removed = view.before.personal_file_count - view.after.personal_file_count;
-      $('explorer-summary').textContent = view.shortcuts_mapped === 0
-        ? 'Tip: klik op "Toon map in Verkenner" om je afdelingsmap toe te voegen.'
-        : `${plural(removed, 'bestand', 'bestanden')} minder in je persoonlijke OneDrive · ${plural(view.shortcuts_mapped, 'SharePoint-map', 'SharePoint-mappen')} met 1 klik bereikbaar.`;
     },
   };
 }

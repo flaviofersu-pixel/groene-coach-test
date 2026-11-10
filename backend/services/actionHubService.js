@@ -2,8 +2,10 @@
  * @file actionHubService.js
  * @description Business logic behind the Teams "Actie-hub".
  *
- *  - scanOneDrive          Feature A: own OneDrive files with times_shared > 2
- *  - duplicateChains       bit-identical copies (same content hash) involving the user
+ *  - scanOneDrive          "Klaar om te verhuizen": shared OneDrive files + suggested team site + reason
+ *  - listOneDrive          all own OneDrive files (left column of the Verkenner)
+ *  - actionSummary         the action list of the Actie-hub (counts + estimated savings)
+ *  - duplicateChains       identical copies (same content hash) in the user's OWN OneDrive
  *  - migrateToSharePoint   "Ja, verhuis het"
  *  - snooze                "Nu niet" (hidden for 7 days, then purged)
  *  - consolidateDuplicates user-confirmed clean-up of OWN redundant copies -> recycle bin
@@ -20,7 +22,7 @@
 import { config, GRAPH_SCOPES } from '../config.js';
 import { inTransaction } from '../db/database.js';
 import { HttpError } from '../errors.js';
-import { estimateMigration, estimateDuplicateRemoval, addBands } from './co2Calculator.js';
+import { estimateMigration, estimateDuplicateRemoval, addBands, band } from './co2Calculator.js';
 import { presentEstimate, round } from './present.js';
 
 const DAY_MS = 86_400_000;
@@ -40,11 +42,26 @@ export function createActionHubService({ db, graph, coefficients: c, telemetry, 
                               ON CONFLICT (user_id, file_id) DO UPDATE SET until = excluded.until`),
     clearSnooze: db.prepare('DELETE FROM snoozes WHERE user_id = ? AND file_id = ?'),
     departmentSite: db.prepare('SELECT id FROM sharepoint_sites WHERE department = ?'),
+    siteById: db.prepare('SELECT id, display_name, library_name FROM sharepoint_sites WHERE id = ?'),
+    memberSiteIds: db.prepare('SELECT site_id FROM site_memberships WHERE user_id = ?'),
+    unmappedSites: db.prepare(`
+      SELECT COUNT(*) AS n FROM site_memberships m
+      WHERE m.user_id = ? AND NOT EXISTS (SELECT 1 FROM onedrive_items oi
+        WHERE oi.owner_id = m.user_id AND oi.target_site_id = m.site_id AND oi.item_type = 'shortcut')`),
+    // A duplicate group = the same content hash at least twice in MY OneDrive, or once in
+    // my OneDrive plus once on a team site I am a member of. Colleagues' OneDrives are
+    // never looked at: a delegated Teams app cannot see them (and should not).
     chainHashes: db.prepare(`
-      SELECT content_hash FROM files WHERE status = 'active'
-      GROUP BY content_hash HAVING COUNT(*) >= 2 AND SUM(owner_id = ?) >= 1`),
+      SELECT f.content_hash FROM files f
+      WHERE f.owner_id = :me AND f.current_location = 'OneDrive' AND f.status = 'active'
+      GROUP BY f.content_hash
+      HAVING COUNT(*) >= 2 OR EXISTS (
+        SELECT 1 FROM files sp
+        JOIN sharepoint_folders spf ON spf.id = sp.sharepoint_folder_id
+        JOIN site_memberships m     ON m.site_id = spf.site_id AND m.user_id = :me
+        WHERE sp.content_hash = f.content_hash AND sp.status = 'active')`),
     chainFiles: db.prepare(`
-      SELECT f.*, oi.name AS od_folder, sf.name AS sp_folder, s.display_name AS site_name
+      SELECT f.*, oi.name AS od_folder, sf.name AS sp_folder, sf.site_id AS site_id, s.display_name AS site_name
       FROM files f
       LEFT JOIN onedrive_items oi     ON oi.id = f.onedrive_folder_id
       LEFT JOIN sharepoint_folders sf ON sf.id = f.sharepoint_folder_id
@@ -76,8 +93,27 @@ export function createActionHubService({ db, graph, coefficients: c, telemetry, 
     return row.id;
   }
 
+  /**
+   * Suggested destination for a shared OneDrive file: the team site of the user's
+   * own team (here: the department site).
+   * TODO(teams): use the teams from GET /me/joinedTeams (Team.ReadBasic.All) and let the
+   * user pick. Guessing the team from WHO the file is shared with would need group
+   * member lists (GroupMember.Read.All) and feels like tracking, so we don't.
+   */
+  function suggestedSite(actor) {
+    const site = q.siteById.get(defaultSiteId(actor));
+    return { id: site.id, display_name: site.display_name, library_name: site.library_name };
+  }
+
+  /** One plain-Dutch line explaining why this file belongs on the team site. */
+  function moveReason(activity) {
+    return activity === 'active'
+      ? 'Gedeeld en recent bewerkt: je team werkt hier nu samen aan.'
+      : 'Gedeeld teamdocument: op de teamsite blijft het vindbaar voor je team.';
+  }
+
   /** Shapes a file plus its migration estimate for the client. */
-  function candidateDto(file, at) {
+  function candidateDto(file, at, actor) {
     const est = estimateMigration(file, c, at);
     return {
       id: file.id,
@@ -88,6 +124,8 @@ export function createActionHubService({ db, graph, coefficients: c, telemetry, 
       last_modified: file.last_modified,
       folder: file.folder_name,
       activity: est.activity,
+      suggested_site: suggestedSite(actor),
+      reason: moveReason(est.activity),
       estimate: {
         ...presentEstimate(est.total, c),
         breakdown: {
@@ -100,28 +138,36 @@ export function createActionHubService({ db, graph, coefficients: c, telemetry, 
     };
   }
 
-  /** Analyses one duplicate chain from the perspective of `actor`. */
+  /**
+   * Analyses one duplicate group from the perspective of `actor`.
+   * Only copies the user can see count: their own OneDrive copies and copies on
+   * team sites they are a member of.
+   *
+   * DETECTION: equal content hash (Graph `file.hashes.quickXorHash`, needs `file` in
+   * $select). The hash is metadata computed by Microsoft 365, so the contents are
+   * never read. Same name + size would miss renamed copies ("Kopie van ...") and
+   * would flag different files that happen to match.
+   */
   function analyseChain(actor, hash) {
-    const copies = q.chainFiles.all(hash);
+    const memberSites = new Set(q.memberSiteIds.all(actor.sub).map((r) => r.site_id));
+    const copies = q.chainFiles.all(hash).filter((f) =>
+      (f.owner_id === actor.sub && f.current_location === 'OneDrive') ||
+      (f.current_location === 'SharePoint' && memberSites.has(f.site_id)));
     const master = copies.find((f) => f.current_location === 'SharePoint') ?? null;
-    const mine = copies.filter((f) => f.owner_id === actor.sub && f.current_location === 'OneDrive');
+    const mine = copies.filter((f) => f.current_location === 'OneDrive');
     // Without a SharePoint master, the user's newest copy becomes the master.
     const keep = master ? null : mine[0] ?? null;
     const removable = mine.filter((f) => f !== keep);
-    const size = copies[0].size_mb;
-    const colleagues = new Set(copies.filter((f) => f.owner_id !== actor.sub).map((f) => f.owner_id)).size;
+    const size = (copies[0] ?? { size_mb: 0 }).size_mb;
 
     return {
-      copies, master, keep, removable, size, colleagues,
+      copies, master, keep, removable, size,
       dto: {
         content_hash: hash,
-        filename: (master ?? mine[0] ?? copies[0]).filename,
+        match: 'hash', // how the copies were recognised (see above)
+        filename: (master ?? mine[0] ?? copies[0])?.filename ?? '',
         size_mb: size,
-        total_copies: copies.length,
-        // Organisation-wide waste of this chain, the honest storage figure.
-        chain_waste: presentEstimate(estimateDuplicateRemoval(size, copies.length - 1, c).total, c),
-        my_copies: mine.map((f) => ({ id: f.id, filename: f.filename, folder: f.od_folder })),
-        colleagues_with_copy: colleagues, // a count, never names (privacy)
+        my_copies: mine.map((f) => ({ id: f.id, filename: f.filename, folder: f.od_folder, last_modified: f.last_modified })),
         master: master
           ? { location: 'SharePoint', site: master.site_name, folder: master.sp_folder, filename: master.filename }
           : null,
@@ -132,26 +178,109 @@ export function createActionHubService({ db, graph, coefficients: c, telemetry, 
     };
   }
 
+  /**
+   * Shared OneDrive files that belong on a team site, minus the ones the user
+   * snoozed ("Nu niet"). Returns the raw files; callers shape them.
+   * TODO(teams): the threshold counts sharing permissions (GET /items/{id}/permissions).
+   * The neutral alternative is the yes/no `shared` facet on the driveItem.
+   */
+  function moveCandidates(actor, at) {
+    // Expired snoozes are ignored here and purged by the retention job (server.js).
+    const snoozed = new Set(q.snoozed.all(actor.sub, at.toISOString()).map((r) => r.file_id));
+    const shared = graph.listMyOneDriveFiles(actor)
+      .filter((f) => f.status === 'active' && f.times_shared > config.shareThreshold);
+    return { shared, open: shared.filter((f) => !snoozed.has(f.id)) };
+  }
+
+  /** Sums the yearly estimates of several actions into one band. */
+  function sumEstimates(totals) {
+    return {
+      co2_g: addBands(band(0), ...totals.map((t) => t.co2_g)),
+      kwh: addBands(band(0), ...totals.map((t) => t.kwh)),
+    };
+  }
+
+  /** Days since an ISO date. */
+  const daysSince = (iso, at) => (at.getTime() - Date.parse(iso)) / DAY_MS;
+
   return {
-    /** Feature A: the user's OneDrive files that are intensively shared. */
+    /** "Klaar om te verhuizen": shared OneDrive files with a suggested team site and a reason. */
     scanOneDrive(actor) {
       const at = now();
-      // Expired snoozes are ignored here and purged by the retention job (server.js).
-      const snoozed = new Set(q.snoozed.all(actor.sub, at.toISOString()).map((r) => r.file_id));
-      const candidates = graph.listMyOneDriveFiles(actor)
-        .filter((f) => f.status === 'active' && f.times_shared > config.shareThreshold);
-
-      const files = candidates
-        .filter((f) => !snoozed.has(f.id))
-        .map((f) => candidateDto(f, at))
+      const { shared, open } = moveCandidates(actor, at);
+      const files = open
+        .map((f) => candidateDto(f, at, actor))
         .sort((a, b) => b._sortKey - a._sortKey)
         .map(({ _sortKey, ...dto }) => dto);
 
       return {
         threshold: config.shareThreshold,
         count: files.length,
-        snoozed_count: candidates.length - files.length,
+        snoozed_count: shared.length - files.length,
         files,
+      };
+    },
+
+    /**
+     * Left column of the Verkenner: ALL own OneDrive files (metadata only).
+     * GET /me/drive/root/delta?$select=id,name,size,lastModifiedDateTime,parentReference,shared,file
+     *
+     * Only `lastModifiedDateTime` is reliable for every file. A real "last opened" date
+     * is not: `fileSystemInfo.lastAccessedDateTime` is mostly empty for cloud files and
+     * /me/insights/used only covers recently used documents. So the UI says
+     * "Laatst bewerkt", never "Laatst geopend".
+     */
+    listOneDrive(actor) {
+      const at = now();
+      const files = graph.listMyOneDriveFiles(actor).filter((f) => f.status === 'active');
+      const hashCount = new Map();
+      for (const f of files) hashCount.set(f.content_hash, (hashCount.get(f.content_hash) ?? 0) + 1);
+
+      return {
+        old_file_days: config.oldFileDays,
+        files: files
+          .map((f) => ({
+            id: f.id,
+            filename: f.filename,
+            folder: f.folder_name,
+            size_mb: f.size_mb,
+            last_modified: f.last_modified,
+            is_shared: f.times_shared > 0, // yes/no only: we never show how many people
+            is_move_candidate: f.times_shared > config.shareThreshold,
+            is_old: daysSince(f.last_modified, at) > config.oldFileDays,
+            has_identical_copy: hashCount.get(f.content_hash) > 1,
+          }))
+          .sort((a, b) => a.filename.localeCompare(b.filename, 'nl')),
+      };
+    },
+
+    /**
+     * The Actie-hub: a short list of concrete actions, each with a count and (where we
+     * can estimate it honestly) the yearly saving. The UI turns this into titles + buttons.
+     */
+    actionSummary(actor) {
+      const at = now();
+      const { open } = moveCandidates(actor, at);
+      const moveTotal = sumEstimates(open.map((f) => estimateMigration(f, c, at).total));
+
+      const chains = q.chainHashes.all({ me: actor.sub }).map((r) => analyseChain(actor, r.content_hash));
+      const removableCopies = chains.reduce((n, ch) => n + ch.removable.length, 0);
+      const freedMb = chains.reduce((mb, ch) => mb + ch.size * ch.removable.length, 0);
+      const duplicateTotal = sumEstimates(chains.map((ch) => estimateDuplicateRemoval(ch.size, ch.removable.length, c).total));
+
+      const oldFiles = graph.listMyOneDriveFiles(actor)
+        .filter((f) => f.status === 'active' && daysSince(f.last_modified, at) > config.oldFileDays);
+
+      return {
+        actions: [
+          { id: 'move', count: open.length, estimate: open.length ? presentEstimate(moveTotal, c) : null },
+          { id: 'duplicates', count: removableCopies, storage_freed_mb: round(freedMb, 1),
+            estimate: removableCopies ? presentEstimate(duplicateTotal, c) : null },
+          // No CO2 figure: what happens with old files depends on the retention rules.
+          { id: 'old', count: oldFiles.length, old_file_days: config.oldFileDays, estimate: null },
+          // No direct saving: a shortcut only makes the team files easier to find.
+          { id: 'shortcut', count: q.unmappedSites.get(actor.sub).n, estimate: null },
+        ],
       };
     },
 
@@ -164,19 +293,19 @@ export function createActionHubService({ db, graph, coefficients: c, telemetry, 
     /** Duplicate chains (same simulated quickXorHash) in which the user owns a copy. */
     duplicateChains(actor) {
       graph.requireScope(actor, GRAPH_SCOPES.FILES_READ_ALL);
-      const chains = q.chainHashes.all(actor.sub).map((r) => analyseChain(actor, r.content_hash).dto);
-      chains.sort((a, b) => b.size_mb * b.total_copies - a.size_mb * a.total_copies);
+      const chains = q.chainHashes.all({ me: actor.sub }).map((r) => analyseChain(actor, r.content_hash).dto);
+      chains.sort((a, b) => b.size_mb * b.removable_count - a.size_mb * a.removable_count);
       return { count: chains.length, chains };
     },
 
     /** "Ja, verhuis het": OneDrive -> department SharePoint site. */
-    migrateToSharePoint(actor, { fileId, siteId }) {
+    migrateToSharePoint(actor, { fileId, siteId, folderId }) {
       const target = siteId ?? defaultSiteId(actor);
       const before = graph.getMyFile(actor, fileId);
       const est = estimateMigration(before, c, now());
 
       const result = inTransaction(db, () => {
-        const moved = graph.moveToSharePoint(actor, fileId, target);
+        const moved = graph.moveToSharePoint(actor, fileId, target, folderId);
         audit(actor, {
           file: moved.file, action: 'migrate', fromLocation: 'OneDrive', fromFolder: moved.fromFolder,
           toLocation: 'SharePoint', siteId: moved.site.id, estimate: est.total,
@@ -188,7 +317,8 @@ export function createActionHubService({ db, graph, coefficients: c, telemetry, 
 
       return {
         file: { id: result.file.id, filename: result.file.filename, current_location: result.file.current_location },
-        site: { id: result.site.id, display_name: result.site.display_name, web_url: result.site.web_url },
+        site: { id: result.site.id, display_name: result.site.display_name, library_name: result.site.library_name, web_url: result.site.web_url },
+        folder: result.folder,
         estimate: presentEstimate(est.total, c),
         storage_note: est.storage.note,
       };
@@ -217,7 +347,9 @@ export function createActionHubService({ db, graph, coefficients: c, telemetry, 
       }
       graph.requireScope(actor, GRAPH_SCOPES.FILES_READWRITE_ALL);
       const chain = analyseChain(actor, contentHash);
-      if (!chain.copies.some((f) => f.owner_id === actor.sub)) throw new HttpError(404, 'Deze reeks kopieën is niet gevonden.');
+      if (!chain.copies.some((f) => f.owner_id === actor.sub && f.current_location === 'OneDrive')) {
+        throw new HttpError(404, 'Deze reeks kopieën is niet gevonden.');
+      }
       if (chain.removable.length === 0) throw new HttpError(409, 'Je hebt in deze reeks geen overbodige kopieën.');
 
       const removal = estimateDuplicateRemoval(chain.size, chain.removable.length, c).total;
@@ -250,7 +382,6 @@ export function createActionHubService({ db, graph, coefficients: c, telemetry, 
         master: { filename: outcome.master.filename, location: 'SharePoint', site: outcome.master.site_name ?? null },
         recycled: outcome.recycled,
         estimate: presentEstimate(total, c),
-        colleagues_with_copy: chain.colleagues,
         restore_hint: 'Kopieën staan in je prullenbak en zijn 93 dagen terug te zetten.',
       };
     },

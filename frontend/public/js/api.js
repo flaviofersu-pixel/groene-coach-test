@@ -74,8 +74,12 @@ export const api = {
   me: () => request('/api/user/me'),
   scan: () => request('/api/files/scan-onedrive'),
   myFiles: () => request('/api/files/mine'),
+  oneDrive: () => request('/api/files/onedrive'),
+  actions: () => request('/api/files/actions'),
   chains: () => request('/api/files/duplicate-chains'),
-  migrate: (fileId, siteId) => request('/api/files/migrate-to-sharepoint', { method: 'POST', body: { fileId, siteId } }),
+  migrate: (fileId, siteId, folderId) =>
+    request('/api/files/migrate-to-sharepoint', { method: 'POST', body: { fileId, siteId, folderId } }),
+  sharePointTree: () => request('/api/user/sharepoint-tree'),
   snooze: (fileId) => request('/api/files/snooze', { method: 'POST', body: { fileId } }),
   consolidate: (contentHash) =>
     request('/api/files/consolidate-duplicates', { method: 'POST', body: { contentHash, confirmed: true } }),

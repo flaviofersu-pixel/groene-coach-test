@@ -3,13 +3,16 @@
   index.html — "OpruimCoach" as a Microsoft Teams personal app (simulation)
 
   Tabs:
-    Actie-hub   Feature A (shared OneDrive files) + Feature B (nudge) + duplicate chains
-    Verkenner   SharePoint Mapper: before/after preview of OneDrive in Explorer
+    Actie-hub   list of recommended actions; each opens the Verkenner on the right part
+    Verkenner   Verhuizen (two Explorer windows: drag a file onto a team-site folder,
+                + ready list), Dubbele kopieën,
+                Mijn SharePoint-sites, Voor en na (before/after preview)
     Impact      Feature C: collective impact with honest bands and metaphors
     Privacy     permissions, privacy and Archiefwet explanation + coefficient table
 
   Pure web app: nothing is installed on the (locked) municipal laptop.
-  Logic: js/app.js (shell) + js/actionHub.js, js/explorer.js, js/impact.js, js/about.js
+  Logic: js/app.js (shell) + js/actionHub.js, js/explorer.js (+ moveBoard, duplicates,
+  sites, preview), js/impact.js, js/about.js
 -->
 <html lang="nl">
 <head>
@@ -67,64 +70,113 @@
       <p id="load-error" class="banner banner--error" role="alert" hidden></p>
 
       <!-- ===================== Actie-hub ===================== -->
+      <!-- A list of concrete actions, like "Energy recommendations" in Windows Settings.
+           Each button opens the Verkenner with the right part already selected. -->
       <section id="tab-hub" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-hub">
         <div class="intro">
           <h2 id="hub-greeting">Welkom</h2>
-          <p class="muted">Gedeelde bestanden in je OneDrive horen vaak bij je team, op SharePoint. Jij beslist altijd zelf: de coach verplaatst of verwijdert nooit iets zonder jouw akkoord.</p>
+          <p class="muted">Dit kun je doen om je bestanden op de juiste plek te zetten. Jij beslist altijd zelf: OpruimCoach verplaatst of verwijdert nooit iets zonder jouw akkoord.</p>
         </div>
 
-        <!-- Feature B: the nudge -->
-        <div id="nudge-slot" aria-live="polite"></div>
+        <section class="panel" aria-labelledby="actions-title">
+          <div class="panel-head">
+            <div>
+              <h3 class="panel-title" id="actions-title">Aanbevolen acties</h3>
+              <p class="panel-sub">Grootste besparing bovenaan</p>
+            </div>
+          </div>
+          <ul id="action-list" class="action-list"></ul>
+        </section>
+      </section>
 
-        <div class="grid-2">
-          <!-- Feature A: action list -->
-          <section class="panel" aria-labelledby="candidates-title">
+      <!-- ===================== Verkenner ===================== -->
+      <section id="tab-explorer" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-explorer" hidden>
+        <div class="subtabs" role="tablist" aria-label="Onderdelen van de Verkenner">
+          <button class="subtab" role="tab" id="sub-btn-move" aria-controls="sub-move" aria-selected="true" type="button" data-view="move">Verhuizen</button>
+          <button class="subtab" role="tab" id="sub-btn-duplicates" aria-controls="sub-duplicates" aria-selected="false" tabindex="-1" type="button" data-view="duplicates">Dubbele kopieën</button>
+          <button class="subtab" role="tab" id="sub-btn-sites" aria-controls="sub-sites" aria-selected="false" tabindex="-1" type="button" data-view="sites">Mijn SharePoint-sites</button>
+          <button class="subtab" role="tab" id="sub-btn-preview" aria-controls="sub-preview" aria-selected="false" tabindex="-1" type="button" data-view="preview">Voor en na</button>
+        </div>
+
+        <!-- Verhuizen: two Explorer windows (drag a file onto a team-site folder) + ready list -->
+        <section id="sub-move" class="subpanel" role="tabpanel" aria-labelledby="sub-btn-move">
+          <div class="board-toolbar">
+            <p class="board-hint"><strong>Sleep een bestand</strong> uit je OneDrive naar de map op de teamsite waar het hoort. Geen muis? Kies "Verhuizen…" bij het bestand.</p>
+            <label class="filter-label">
+              <span>Toon in OneDrive</span>
+              <select id="od-filter" class="sim-select">
+                <option value="all">Alle bestanden</option>
+                <option value="shared">Gedeelde bestanden</option>
+                <option value="old">Lang niet bewerkt</option>
+              </select>
+            </label>
+          </div>
+          <p id="od-filter-note" class="filter-note" hidden></p>
+
+          <div class="board" id="board">
+            <figure class="explorer-figure">
+              <figcaption><span id="od-title">Jouw OneDrive</span></figcaption>
+              <div id="od-window" class="explorer"></div>
+            </figure>
+            <figure class="explorer-figure">
+              <figcaption><span id="sp-title">Je teamsites op SharePoint</span></figcaption>
+              <div id="sp-window" class="explorer"></div>
+            </figure>
+          </div>
+
+          <section class="panel" id="ready-panel" aria-labelledby="ready-title">
             <div class="panel-head">
               <div>
-                <h3 class="panel-title" id="candidates-title">Gedeelde bestanden in je OneDrive</h3>
-                <p class="panel-sub">Grootste besparing bovenaan</p>
+                <h3 class="panel-title" id="ready-title">Klaar om te verhuizen</h3>
+                <p class="panel-sub">Gedeelde documenten in je OneDrive die waarschijnlijk bij je team horen. Jij kiest de map.</p>
               </div>
             </div>
-            <ul id="candidate-list" class="file-list"></ul>
+            <ul id="ready-list" class="file-list"></ul>
             <p id="snoozed-note" class="muted small" hidden></p>
           </section>
+        </section>
 
-          <!-- Duplicate chains -->
+        <!-- Part 4: duplicate copies -->
+        <section id="sub-duplicates" class="subpanel" role="tabpanel" aria-labelledby="sub-btn-duplicates" hidden>
           <section class="panel" aria-labelledby="chains-title">
             <div class="panel-head">
               <div>
-                <h3 class="panel-title" id="chains-title"> kopieën</h3>
-                <p class="panel-sub">Alleen het opruimen van identieke kopieën bespaart opslag</p>
+                <h3 class="panel-title" id="chains-title">Dubbele kopieën</h3>
+                <p class="panel-sub">Identieke bestanden in je OneDrive. Alleen het opruimen van kopieën bespaart opslag.</p>
               </div>
             </div>
             <div id="chain-list" class="chain-list"></div>
           </section>
-        </div>
-      </section>
-
-      <!-- ===================== Verkenner (SharePoint Mapper) ===================== -->
-      <section id="tab-explorer" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-explorer" hidden>
-        <section class="panel">
-          <div class="panel-head">
-            <div>
-              <h3 class="panel-title">Je afdelingsmap met 1 klik in je OneDrive</h3>
-              <p class="panel-sub">Via de standaardfunctie "Snelkoppeling toevoegen aan Mijn bestanden". Er wordt niets op je laptop geïnstalleerd.</p>
-            </div>
-          </div>
-          <ul id="site-list" class="site-list"></ul>
         </section>
 
-        <div class="explorer-compare">
-          <figure class="explorer-figure">
-            <figcaption><span class="pill pill--muted">Voor</span> Alles in je persoonlijke OneDrive</figcaption>
-            <div id="explorer-before" class="explorer"></div>
-          </figure>
-          <figure class="explorer-figure">
-            <figcaption><span class="pill pill--success">Na</span> Opgeruimd, met je afdelingsmap erbij</figcaption>
-            <div id="explorer-after" class="explorer"></div>
-          </figure>
-        </div>
-        <p id="explorer-summary" class="muted small"></p>
+        <!-- Part 5: my SharePoint sites -->
+        <section id="sub-sites" class="subpanel" role="tabpanel" aria-labelledby="sub-btn-sites" hidden>
+          <section class="panel" aria-labelledby="sites-title">
+            <div class="panel-head">
+              <div>
+                <h3 class="panel-title" id="sites-title">Mijn SharePoint-sites</h3>
+                <p class="panel-sub">De teams en sites waar je lid van bent: hier kunnen je bestanden naartoe. Met "Toon map in Verkenner" zet je de teammap in je OneDrive.</p>
+              </div>
+            </div>
+            <ul id="site-list" class="site-list"></ul>
+          </section>
+        </section>
+
+        <!-- Before/after preview -->
+        <section id="sub-preview" class="subpanel" role="tabpanel" aria-labelledby="sub-btn-preview" hidden>
+          <p class="move-explainer"><strong>Verhuizen naar SharePoint:</strong> een document dat bij je team hoort, zet je op de teamsite. Daar kunnen collega's erbij, en wordt het bewaard volgens de bewaarregels van de gemeente. In je OneDrive staat het daarna niet meer.</p>
+          <div class="explorer-compare">
+            <figure class="explorer-figure">
+              <figcaption><span class="pill pill--muted">Voor</span> Alles in je persoonlijke OneDrive</figcaption>
+              <div id="explorer-before" class="explorer"></div>
+            </figure>
+            <figure class="explorer-figure">
+              <figcaption><span class="pill pill--success">Na</span> Opgeruimd, met je teammap erbij</figcaption>
+              <div id="explorer-after" class="explorer"></div>
+            </figure>
+          </div>
+          <p id="explorer-summary" class="muted small"></p>
+        </section>
       </section>
 
       <!-- ===================== Impact ===================== -->
@@ -214,6 +266,22 @@
     <div class="dialog-actions">
       <button type="button" class="btn btn-primary" id="confirm-ok">Ja, ruim mijn kopieën op</button>
       <button type="button" class="btn btn-secondary" id="confirm-cancel">Annuleren</button>
+    </div>
+  </dialog>
+
+  <!-- Move dialog: explains what moving means and names the destination -->
+  <dialog id="move-dialog" class="dialog" aria-labelledby="move-title">
+    <h2 id="move-title" class="dialog-title">Verhuizen naar SharePoint</h2>
+    <div id="move-file" class="move-file"></div>
+    <label class="move-target">
+      <span>Naar map</span>
+      <select id="move-folder" class="sim-select"></select>
+    </label>
+    <p id="move-explain" class="dialog-body"></p>
+    <p id="move-estimate" class="move-estimate"></p>
+    <div class="dialog-actions">
+      <button type="button" class="btn btn-primary" id="move-ok">Verhuizen</button>
+      <button type="button" class="btn btn-secondary" id="move-cancel">Annuleren</button>
     </div>
   </dialog>
 

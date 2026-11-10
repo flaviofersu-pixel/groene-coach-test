@@ -19,6 +19,9 @@ export function createUserRouter(users) {
     res.status(result.created ? 201 : 200).json(result);
   });
 
+  /** GET /api/user/sharepoint-tree: folders of the user's team sites (Verkenner, right window). */
+  router.get('/sharepoint-tree', (req, res) => res.json(users.sharePointTree(req.actor)));
+
   /** GET /api/user/explorer-view: before/after trees for the Explorer preview. */
   router.get('/explorer-view', (req, res) => res.json(users.explorerView(req.actor)));
 

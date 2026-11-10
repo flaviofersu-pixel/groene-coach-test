@@ -77,6 +77,8 @@ describe('OpruimCoach API', () => {
       assert.match(f.estimate.co2_per_year.equivalent.label, /telefoon|water|besparing/); // everyday example
       assert.equal(f.estimate.storage_freed_mb, 0); // single move: no storage saving
       assert.equal(f.estimate.breakdown.storage.label, '0 gram CO₂');
+      assert.equal(f.suggested_site.display_name, 'Wonen'); // own team site
+      assert.ok(f.reason.length > 0 && !/weg mag/i.test(f.reason));
     }
     const own = t.db.prepare("SELECT id FROM files WHERE owner_id = 'u01'").all().map((r) => r.id);
     assert.ok(body.files.every((f) => own.includes(f.id)));
@@ -96,6 +98,26 @@ describe('OpruimCoach API', () => {
 
     const lottesFile = t.db.prepare("SELECT id FROM files WHERE owner_id = 'u07' AND current_location = 'OneDrive' LIMIT 1").get().id;
     assert.equal((await t.call('POST', '/api/files/migrate-to-sharepoint', { token: sanne, body: { fileId: lottesFile } })).status, 403);
+  });
+
+  test('Verkenner: the user picks the folder; a folder of another site is refused', async () => {
+    const { body: tree } = await t.call('GET', '/api/user/sharepoint-tree', { token: sanne });
+    const wonen = tree.sites.find((site) => site.display_name === 'Wonen');
+    assert.ok(wonen.folders.some((f) => f.name === 'Beleid'));
+    assert.ok(!tree.sites.some((site) => site.display_name === 'Financiën')); // not a member
+    const beleid = wonen.folders.find((f) => f.name === 'Beleid');
+
+    const fileId = t.db.prepare("SELECT id FROM files WHERE owner_id = 'u01' AND filename = 'Huurtoeslag_analyse_Q3.xlsx'").get().id;
+    const otherSiteFolder = t.db.prepare("SELECT id FROM sharepoint_folders WHERE site_id = 's03' LIMIT 1").get().id;
+    const wrong = await t.call('POST', '/api/files/migrate-to-sharepoint', { token: sanne, body: { fileId, siteId: 's01', folderId: otherSiteFolder } });
+    assert.equal(wrong.status, 404);
+
+    const res = await t.call('POST', '/api/files/migrate-to-sharepoint', { token: sanne, body: { fileId, siteId: 's01', folderId: beleid.id } });
+    assert.equal(res.status, 200);
+    assert.equal(res.body.folder.name, 'Beleid');
+    const { body: after } = await t.call('GET', '/api/user/sharepoint-tree', { token: sanne });
+    const beleidAfter = after.sites.find((site) => site.id === 's01').folders.find((f) => f.id === beleid.id);
+    assert.ok(beleidAfter.files.some((f) => f.name === 'Huurtoeslag_analyse_Q3.xlsx'));
   });
 
   test('"Nu niet" hides the suggestion and leaves the file untouched', async () => {
@@ -123,7 +145,7 @@ describe('OpruimCoach API', () => {
     assert.equal(res.status, 200);
     assert.equal(res.body.recycled.length, chain.removable_count);
     assert.ok(res.body.estimate.storage_freed_mb > 0);
-    assert.equal(res.body.colleagues_with_copy, chain.colleagues_with_copy); // colleagues untouched
+    assert.ok(!('colleagues_with_copy' in res.body)); // colleagues are never counted
 
     // Archiefwet: nothing was hard-deleted.
     assert.equal(t.db.prepare('SELECT COUNT(*) AS n FROM files').get().n, filesBefore);
@@ -133,6 +155,41 @@ describe('OpruimCoach API', () => {
     const undo = await t.call('POST', `/api/files/${recycledId}/restore`, { token: sanne });
     assert.equal(undo.status, 200);
     assert.equal(undo.body.status, 'active');
+  });
+
+  test('Verkenner: all own OneDrive files with an honest "last edited" date and no people counts', async () => {
+    const { status, body } = await t.call('GET', '/api/files/onedrive', { token: sanne });
+    assert.equal(status, 200);
+    const odCount = t.db.prepare("SELECT COUNT(*) AS n FROM files WHERE owner_id = 'u01' AND current_location = 'OneDrive' AND status = 'active'").get().n;
+    assert.equal(body.files.length, odCount);
+    for (const f of body.files) {
+      assert.ok(!Number.isNaN(Date.parse(f.last_modified)));
+      assert.equal(typeof f.is_shared, 'boolean');
+      assert.ok(!('times_shared' in f)); // yes/no only, never how many people
+    }
+    assert.ok(body.files.some((f) => f.is_old)); // Leegstandsmonitor: 400 days ago
+  });
+
+  test('Actie-hub: action list with counts and honest savings', async () => {
+    const { status, body } = await t.call('GET', '/api/files/actions', { token: lotte });
+    assert.equal(status, 200);
+    const byId = Object.fromEntries(body.actions.map((a) => [a.id, a]));
+    assert.deepEqual(Object.keys(byId).sort(), ['duplicates', 'move', 'old', 'shortcut']);
+    assert.ok(byId.move.count > 0);
+    assert.match(byId.move.estimate.co2_per_year.label, /CO₂/);
+    assert.ok(byId.duplicates.count >= 1); // two own copies of Begroting_2027_concept.xlsx
+    assert.equal(byId.old.estimate, null); // depends on the retention rules: no figure
+  });
+
+  test('duplicates: only copies in your own OneDrive or on your own team sites', async () => {
+    const { body } = await t.call('GET', '/api/files/duplicate-chains', { token: lotte });
+    for (const ch of body.chains) {
+      assert.ok(!('colleagues_with_copy' in ch) && !('total_copies' in ch));
+      assert.equal(ch.match, 'hash');
+    }
+    // Lotte has one copy of the parking subsidy file; the original is on a site she is NOT a member of.
+    assert.ok(!body.chains.some((ch) => ch.filename.startsWith('Subsidie_Aanvraag_Parkeren')));
+    assert.ok(body.chains.some((ch) => ch.filename === 'Begroting_2027_concept.xlsx' && ch.can_consolidate));
   });
 
   test('database trigger blocks hard deletes of drive items', () => {

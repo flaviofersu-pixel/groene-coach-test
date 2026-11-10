@@ -20,14 +20,31 @@ export function formatSize(mb) {
 export const formatDate = (iso) =>
   new Date(iso).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' });
 
-/** ISO date -> "vandaag" / "gisteren" / "12 dagen geleden". */
-export function formatRelative(iso) {
-  const days = Math.floor((Date.now() - Date.parse(iso)) / 86_400_000);
+const DAY_MS = 86_400_000;
+
+/**
+ * ISO date -> plain Dutch: "vandaag", "gisteren", "5 dagen geleden",
+ * "3 weken geleden", "4 maanden geleden", "2 jaar geleden".
+ * @param {string} iso
+ * @param {number} [now] current time in ms (tests pass a fixed value)
+ */
+export function formatRelative(iso, now = Date.now()) {
+  const days = Math.floor((now - Date.parse(iso)) / DAY_MS);
   if (days <= 0) return 'vandaag';
   if (days === 1) return 'gisteren';
-  if (days > 365) return 'meer dan een jaar geleden';
-  return `${days} dagen geleden`;
+  if (days < 14) return `${days} dagen geleden`;
+  if (days < 60) return `${Math.floor(days / 7)} weken geleden`;
+  if (days < 365) return `${Math.floor(days / 30)} maanden geleden`;
+  const years = Math.floor(days / 365);
+  return years === 1 ? '1 jaar geleden' : `${years} jaar geleden`;
 }
+
+/**
+ * "Laatst bewerkt 2 jaar geleden". Deliberately "bewerkt", not "geopend":
+ * Microsoft 365 only reliably knows when a file was last CHANGED
+ * (lastModifiedDateTime), not when someone last opened it.
+ */
+export const lastEditedLabel = (iso, now) => `Laatst bewerkt ${formatRelative(iso, now)}`;
 
 /** "1 bestand" / "3 bestanden" */
 export const plural = (n, one, many) => `${formatNumber(n, 0)} ${n === 1 ? one : many}`;

@@ -17,6 +17,9 @@ import { HttpError } from '../errors.js';
 /** Max files listed per folder in the Explorer preview. */
 const FILES_PER_FOLDER = 6;
 
+/** Max files listed per folder in the Verkenner's SharePoint window. */
+const TREE_FILES_PER_FOLDER = 25;
+
 /**
  * @param {object} deps
  * @param {import('node:sqlite').DatabaseSync} deps.db
@@ -40,13 +43,16 @@ export function createUserService({ db, graph, telemetry, now }) {
     odFiles: db.prepare(`SELECT id, filename, size_mb, times_shared, status, onedrive_folder_id
                          FROM files WHERE owner_id = ? AND current_location = 'OneDrive' ORDER BY filename`),
     movedByMe: db.prepare(`
-      SELECT f.id, f.filename, f.size_mb, f.times_shared, l.from_folder
+      SELECT f.id, f.filename, f.size_mb, f.times_shared, l.from_folder, s.display_name AS site_name
       FROM migration_log l JOIN files f ON f.id = l.file_id
+      LEFT JOIN sharepoint_sites s ON s.id = l.to_site_id
       WHERE l.user_id = ? AND l.action = 'migrate' AND f.current_location = 'SharePoint'
       GROUP BY f.id`),
     siteFolders: db.prepare('SELECT id, name FROM sharepoint_folders WHERE site_id = ? ORDER BY name'),
     folderFiles: db.prepare(`SELECT id, filename, size_mb, times_shared FROM files
                              WHERE sharepoint_folder_id = ? AND status = 'active' ORDER BY filename`),
+    treeFiles: db.prepare(`SELECT id, filename, size_mb, last_modified FROM files
+                           WHERE sharepoint_folder_id = ? AND status = 'active' ORDER BY filename`),
   };
 
   const fileNode = (f, tag) => ({ type: 'file', id: f.id, name: f.filename, size_mb: f.size_mb, shared: f.times_shared, ...(tag ? { tag } : {}) });
@@ -100,6 +106,36 @@ export function createUserService({ db, graph, telemetry, now }) {
     },
 
     /**
+     * Folder tree of every team site the user is a member of, for the Verkenner's
+     * right-hand window: site -> library folders -> files (names, sizes, dates only).
+     * The user drags a OneDrive file onto the folder where it belongs.
+     *
+     * TODO(teams): GET /me/joinedTeams (Team.ReadBasic.All), then per team
+     * GET /groups/{id}/drive/root/children and /drives/{drive-id}/items/{folder-id}/children
+     * (Files.Read.All). These files are on sites the user can already open.
+     */
+    sharePointTree(actor) {
+      graph.requireScope(actor, GRAPH_SCOPES.FILES_READ_ALL);
+      const sites = q.sites.all(actor.sub).map((site) => ({
+        id: site.id,
+        display_name: site.display_name,
+        library_name: site.library_name,
+        is_team_site: site.department !== null,
+        role: site.role,
+        folders: q.siteFolders.all(site.id).map((folder) => {
+          const files = q.treeFiles.all(folder.id);
+          return {
+            id: folder.id,
+            name: folder.name,
+            files: files.slice(0, TREE_FILES_PER_FOLDER).map((f) => ({ id: f.id, name: f.filename, size_mb: f.size_mb, last_modified: f.last_modified })),
+            more: Math.max(0, files.length - TREE_FILES_PER_FOLDER),
+          };
+        }),
+      }));
+      return { sites };
+    },
+
+    /**
      * Two Explorer trees for the "before / after" preview:
      *  before = OneDrive as it was: files the coach helped move or clean up are
      *           back in their original folders, no shortcuts.
@@ -122,7 +158,8 @@ export function createUserService({ db, graph, telemetry, now }) {
         children: [
           ...odFiles.filter((f) => f.onedrive_folder_id === folder.id)
             .map((f) => fileNode(f, f.status === 'recycled' ? 'duplicate' : undefined)),
-          ...moved.filter((m) => m.from_folder === folder.name).map((m) => fileNode(m, 'to-move')),
+          ...moved.filter((m) => m.from_folder === folder.name)
+            .map((m) => ({ ...fileNode(m, 'to-move'), site_name: m.site_name })),
         ].sort((a, b) => a.name.localeCompare(b.name, 'nl')),
       }));
 

@@ -32,9 +32,13 @@ const SVG = {
   folder: '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="ic-folder" d="M2.5 6.5a2 2 0 0 1 2-2h4.6l2 2h8.4a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-15a2 2 0 0 1-2-2z"/></svg>',
   shortcut: '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="ic-shortcut" d="M2.5 6.5a2 2 0 0 1 2-2h4.6l2 2h8.4a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-15a2 2 0 0 1-2-2z"/><rect class="ic-badge" x="11" y="11" width="10" height="10" rx="2"/><path class="ic-arrow" d="M14 18.5c0-2.5 1.5-4 4-4m0 0-1.6-1.4m1.6 1.4-1.6 1.4"/></svg>',
   cloud: '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="ic-cloud" d="M7 18.5h10.5a4 4 0 0 0 .5-7.97A6 6 0 0 0 6.2 9.6 4.5 4.5 0 0 0 7 18.5z"/></svg>',
+  // Line icons for the Actie-hub (colour comes from CSS `currentColor`).
+  move: '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="ic-line" d="M3 7h7l2 2h9v10H3zM9 14h7m-3-3 3 3-3 3"/></svg>',
+  copies: '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="ic-line" d="M8 4h9l3 3v11H8zM5 7v13h11"/></svg>',
+  clock: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle class="ic-line" cx="12" cy="12" r="8.5"/><path class="ic-line" d="M12 7.5V12l3 2"/></svg>',
 };
 
-/** Icon element: 'folder' | 'shortcut' | 'cloud'. */
+/** Icon element: 'folder' | 'shortcut' | 'cloud' | 'move' | 'copies' | 'clock'. */
 export function icon(name) {
   const span = el('span', `ic ic--${name}`);
   span.innerHTML = SVG[name]; // constant markup, never data

@@ -4,8 +4,8 @@
  *
  * PATTERN: each tab is a small "view module" with a `load()` method. The shell
  * loads the visible tab and marks the others stale; a stale tab reloads when
- * it is opened. A shared context object lets views talk to the shell (e.g. the
- * Actie-hub switching to the Verkenner after "Toon map in Verkenner").
+ * it is opened. A shared context object lets views talk to the shell (e.g. an
+ * Actie-hub button opening the Verkenner on the right part).
  */
 
 import { api, setupUserSelect, updates } from './api.js';
@@ -16,6 +16,9 @@ import { createAbout } from './about.js';
 import { loadCo2Factors } from './co2.js';
 
 const $ = (id) => document.getElementById(id);
+
+/** The main tabs only (the Verkenner has its own sub-tabs, handled in explorer.js). */
+const mainTabs = () => [...document.querySelectorAll('.tabs [role="tab"]')];
 
 /** Shared context handed to every view. */
 const ctx = {
@@ -59,10 +62,16 @@ async function loadView(id) {
 }
 const loadActive = () => loadView(activeTab);
 
-/** Accessible tabs (click + arrow keys). */
-function showTab(id, { focus = false } = {}) {
+/**
+ * Accessible tabs (click + arrow keys).
+ * @param {string} id panel id, e.g. 'tab-explorer'
+ * @param {{ focus?: boolean, view?: string, filter?: string }} [options]
+ *   view/filter: open a specific part of that tab (used by the Actie-hub buttons)
+ */
+function showTab(id, { focus = false, view, filter } = {}) {
   activeTab = id;
-  for (const tab of document.querySelectorAll('[role="tab"]')) {
+  if (view) views[id].select?.({ view, filter });
+  for (const tab of mainTabs()) {
     const active = tab.getAttribute('aria-controls') === id;
     tab.setAttribute('aria-selected', String(active));
     tab.tabIndex = active ? 0 : -1;
@@ -73,7 +82,7 @@ function showTab(id, { focus = false } = {}) {
 }
 
 function setupTabs() {
-  const tabs = [...document.querySelectorAll('[role="tab"]')];
+  const tabs = mainTabs();
   tabs.forEach((tab, i) => {
     tab.addEventListener('click', () => showTab(tab.getAttribute('aria-controls')));
     tab.addEventListener('keydown', (e) => {

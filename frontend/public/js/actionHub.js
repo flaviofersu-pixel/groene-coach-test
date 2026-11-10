@@ -1,281 +1,132 @@
 /**
  * @file actionHub.js
- * @description The "Actie-hub" tab.
+ * @description The "Actie-hub" tab: a short list of recommended actions,
+ * comparable to "Energy recommendations" in Windows Settings.
  *
- *  Feature A  list of own OneDrive files with times_shared > 2
- *  Feature B  the nudge card with the exact coaching copy, "Ja, verhuis het" / "Nu niet"
- *  Extra      duplicate chains with user-confirmed clean-up (+ undo)
- *
- * Autonomy: every action starts with a click by the civil servant; clean-up
- * additionally requires a confirmation dialog, and can be undone.
+ * Every action has a short title, the estimated saving (or an honest note
+ * when we cannot put a number on it) and one button. The button opens the
+ * Verkenner with the right part (and filter) already selected; the actual
+ * work (moving, cleaning up) always happens there, after the user's click.
  */
 
 import { api } from './api.js';
-import { el, append, button, fileIcon, toast } from './dom.js';
-import { formatSize, formatRelative, firstName, plural } from './format.js';
-import { co2Amount, co2Text, co2InfoButton, co2Example } from './co2.js';
+import { el, append, button, icon, infoButton } from './dom.js';
+import { formatSize, firstName, plural } from './format.js';
+import { co2Amount } from './co2.js';
 
 const $ = (id) => document.getElementById(id);
 
+/** Explanation behind the "i" of the old-files action (Archiefwet, never "weg mag"). */
+const RETENTION_INFO = () => [
+  el('p', 'info-title', 'Bestanden die lang niet zijn bewerkt'),
+  el('p', '', 'Voor documenten van de gemeente gelden bewaarregels (Archiefwet en selectielijsten). ' +
+    'Sommige documenten moet je lang bewaren, vaak op de teamsite of in het archief.'),
+  el('p', '', 'Bekijk dus per bestand of je het nog nodig hebt voor je werk, en waar het volgens de bewaarregels hoort. ' +
+    'Twijfel je? Vraag het je archiefadviseur (DIV).'),
+];
+
+/**
+ * How each action from the API is shown. `title` and `doneTitle` get the count;
+ * `target` is where the button takes you in the Verkenner.
+ */
+const ACTION_TEXT = {
+  move: {
+    icon: 'move',
+    title: (n) => `Verhuis ${plural(n, 'gedeeld bestand', 'gedeelde bestanden')} naar je teamsite`,
+    doneTitle: 'Je gedeelde bestanden staan op de teamsite',
+    target: { view: 'move', filter: 'ready' },
+  },
+  duplicates: {
+    icon: 'copies',
+    title: (n) => `Ruim ${plural(n, 'dubbele kopie', 'dubbele kopieën')} op`,
+    doneTitle: 'Geen dubbele kopieën in je OneDrive',
+    target: { view: 'duplicates' },
+  },
+  old: {
+    icon: 'clock',
+    title: (n) => `Bekijk ${plural(n, 'bestand dat', 'bestanden die')} al meer dan een jaar niet ${n === 1 ? 'is' : 'zijn'} bewerkt`,
+    doneTitle: 'Geen bestanden die lang niet zijn bewerkt',
+    target: { view: 'move', filter: 'old' },
+  },
+  shortcut: {
+    icon: 'shortcut',
+    title: (n) => `Zet ${plural(n, 'teammap', 'teammappen')} in je OneDrive`,
+    doneTitle: 'Je teammappen staan al in je OneDrive',
+    target: { view: 'sites' },
+  },
+};
+
+/** Second line of an action: the saving, or why there is no number. */
+function actionDetail(action) {
+  if (action.count === 0) return el('span', 'action-sub', 'Niets te doen');
+  switch (action.id) {
+    case 'move':
+      return append(el('span', 'action-sub', 'Geschatte besparing: '), co2Amount(action.estimate.co2_per_year));
+    case 'duplicates':
+      return append(el('span', 'action-sub', `${formatSize(action.storage_freed_mb)} vrij · Geschatte besparing: `),
+        co2Amount(action.estimate.co2_per_year));
+    case 'old':
+      return append(el('span', 'action-sub', 'Besparing hangt af van de bewaarregels'),
+        infoButton('Uitleg over bewaarregels', RETENTION_INFO));
+    case 'shortcut':
+      return el('span', 'action-sub', 'Geen directe besparing: je vindt je teambestanden sneller');
+    default:
+      return null;
+  }
+}
+
+/**
+ * Order: actions with the biggest (upper-bound) saving first, then actions
+ * without a figure, and finished actions last.
+ */
+function sortActions(actions) {
+  const rank = (a) => {
+    if (a.count === 0) return -2;
+    return a.estimate ? a.estimate.co2_per_year.high : -1;
+  };
+  return [...actions].sort((a, b) => rank(b) - rank(a));
+}
+
 /** @param {object} ctx shared app context (see app.js) */
 export function createActionHub(ctx) {
-  const state = { files: [], chains: [], currentId: null, snoozedCount: 0 };
+  /** One row: icon, title + detail, and the button (or a "done" check). */
+  function renderAction(action) {
+    const text = ACTION_TEXT[action.id];
+    if (!text) return null;
+    const done = action.count === 0;
 
-  // One CO2 explanation button per list panel (the rows themselves stay short).
-  $('candidates-title').after(co2InfoButton());
-  $('chains-title').after(co2InfoButton());
+    const titleId = `action-title-${action.id}`;
+    const title = el('div', 'action-title', done ? text.doneTitle : text.title(action.count));
+    title.id = titleId;
 
-  const departmentSite = () => ctx.me.sites.find((s) => s.department === ctx.me.user.department) ?? ctx.me.sites[0];
-
-  // --- Feature B: nudge -----------------------------------------------------------
-
-  function renderNudge() {
-    const slot = $('nudge-slot');
-    const file = state.files.find((f) => f.id === state.currentId) ?? state.files[0];
-    if (!file) {
-      slot.replaceChildren(append(el('div', 'nudge'),
-        el('span', 'nudge-avatar', '🌿'),
-        append(el('div'),
-          el('p', 'nudge-title', 'Alles staat op de juiste plek'),
-          el('p', 'nudge-text', 'Je hebt geen gedeelde bestanden meer in je OneDrive die bij je team horen. Dank je wel!'))));
-      return;
+    let control;
+    if (done) {
+      control = el('span', 'pill pill--success', '✓ Klaar');
+    } else {
+      control = button('Bekijken', 'btn btn-secondary', () => ctx.showTab('tab-explorer', text.target));
+      control.setAttribute('aria-describedby', titleId); // "Bekijken" + which action
     }
-    state.currentId = file.id;
 
-    const body = el('div');
-    append(body,
-      el('p', 'nudge-from', 'OpruimCoach · nu'),
-      // Exact copy from the brief, personalised with the first name.
-      el('h2', 'nudge-title', `Samen groener werken, ${firstName(ctx.me.user.display_name)}? 🌿`),
-      el('p', 'nudge-text', 'Dit is een gedeeld bestand dat bij je team hoort. Zullen we het verhuizen naar SharePoint? Zo staat het direct op de wettelijk juiste plek voor de Archiefwet en besparen we netwerk- en back-up-energie.'));
-
-    const chip = append(el('div', 'nudge-file'), fileIcon(file.filename),
-      append(el('div'),
-        el('div', 'nudge-file-name', file.filename),
-        el('div', 'nudge-file-meta',
-          `Gedeeld bestand · ${formatSize(file.size_mb)} · gewijzigd ${formatRelative(file.last_modified)} · map ${file.folder}`)));
-
-    const estimate = el('p', 'nudge-estimate', 'Geschatte besparing: ');
-    append(estimate, co2Amount(file.estimate.co2_per_year));
-
-    const details = el('details', 'nudge-details');
-    const list = el('ul');
-    append(list,
-      el('li', '', `Opslag: ${file.estimate.breakdown.storage.label}. ${file.estimate.breakdown.storage.note}`),
-      el('li', '', `Synchronisatie: ${co2Text(file.estimate.breakdown.sync, '')}`),
-      el('li', '', `Back-up: ${co2Text(file.estimate.breakdown.backup, '')}`),
-      el('li', '', file.activity === 'active'
-        ? 'Het bestand is recent gewijzigd, dus er is actief sync-verkeer.'
-        : 'Het bestand is al een tijd niet gewijzigd, dus de besparing is klein.'));
-    append(details, el('summary', '', 'Waarom een bandbreedte?'), list,
-      el('p', '', 'We rekenen met een onder- en bovengrens, omdat exacte cijfers schijnzekerheid geven.'));
-
-    // Destination: department site by default, other memberships selectable.
-    const select = el('select', 'sim-select');
-    select.setAttribute('aria-label', 'Doel-SharePoint-site');
-    for (const s of ctx.me.sites) select.append(new Option(`${s.display_name} › ${s.library_name}`, s.id, false, s.id === departmentSite()?.id));
-    const target = append(el('label', 'nudge-target'), el('span', '', 'Naar:'), select);
-
-    const error = el('p', 'nudge-error');
-    error.hidden = true;
-    error.setAttribute('role', 'alert');
-
-    const yes = button('Ja, verhuis het', 'btn btn-primary');
-    const no = button('Nu niet', 'btn btn-secondary');
-    yes.addEventListener('click', () => migrate(file, select.value, { yes, no, error }));
-    no.addEventListener('click', () => snooze(file, { yes, no }));
-
-    append(body, chip, estimate, details, target, error, append(el('div', 'nudge-actions'), yes, no));
-    slot.replaceChildren(append(el('article', 'nudge'), el('span', 'nudge-avatar', '🌿'), body));
+    return append(el('li', `action-row${done ? ' is-done' : ''}`),
+      append(el('span', 'action-icon'), icon(text.icon)),
+      append(el('div', 'action-main'), title, actionDetail(action)),
+      control);
   }
 
-  /** Green checkmark state after a successful move. */
-  function renderDone(result) {
-    const site = ctx.me.sites.find((s) => s.id === result.site.id);
-    const check = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    check.setAttribute('viewBox', '0 0 48 48');
-    check.setAttribute('class', 'check');
-    check.setAttribute('aria-hidden', 'true');
-    const circle = document.createElementNS(check.namespaceURI, 'circle');
-    circle.setAttribute('cx', '24'); circle.setAttribute('cy', '24'); circle.setAttribute('r', '22');
-    const path = document.createElementNS(check.namespaceURI, 'path');
-    path.setAttribute('d', 'M14 25 l7 7 l13 -15');
-    check.append(circle, path);
-
-    const showFolder = button(site?.mapped ? 'Bekijk in Verkenner' : 'Toon map in Verkenner', 'btn btn-primary', async () => {
-      try {
-        if (!site?.mapped) {
-          await api.mapShortcut(result.site.id);
-          await ctx.refreshAll();
-        }
-        ctx.showTab('tab-explorer');
-      } catch (err) {
-        toast(err.message);
-      }
-    });
-    const nextBtn = button('Volgende suggestie', 'btn btn-secondary', () => { state.currentId = null; renderNudge(); });
-
-    const body = append(el('div'),
-      el('h2', 'nudge-title', `Verhuisd naar SharePoint · ${result.site.display_name}`),
-      el('p', 'nudge-text', `${result.file.filename} staat nu op de wettelijk juiste plek. ${result.storage_note}`),
-      append(el('p', 'nudge-estimate', 'Geschatte besparing: '), co2Amount(result.estimate.co2_per_year)),
-      append(el('div', 'nudge-actions'), showFolder, nextBtn));
-    $('nudge-slot').replaceChildren(append(el('article', 'nudge'), append(el('div', 'nudge-done'), check), body));
-  }
-
-  async function migrate(file, siteId, { yes, no, error }) {
-    yes.disabled = true; no.disabled = true;
-    yes.textContent = 'Bezig met verhuizen…';
-    try {
-      const result = await api.migrate(file.id, siteId);
-      state.files = state.files.filter((f) => f.id !== file.id);
-      state.currentId = null;
-      renderList();
-      renderDone(result);
-      ctx.refreshAll().catch(() => {}); // other tabs + other open windows
-    } catch (err) {
-      error.textContent = err.message;
-      error.hidden = false;
-      yes.disabled = false; no.disabled = false;
-      yes.textContent = 'Opnieuw proberen';
-    }
-  }
-
-  /** "Nu niet" is honoured immediately, even if logging the choice fails. */
-  async function snooze(file, { yes, no }) {
-    yes.disabled = true; no.disabled = true;
-    state.files = state.files.filter((f) => f.id !== file.id);
-    state.currentId = null;
-    try {
-      await api.snooze(file.id);
-      state.snoozedCount += 1;
-      toast(`Prima, ${file.filename} blijft in je OneDrive. We vragen het een week niet opnieuw.`);
-    } catch (err) {
-      toast(`${file.filename} blijft in je OneDrive.`);
-    }
-    renderNudge();
-    renderList();
-  }
-
-  // --- Feature A: list ----------------------------------------------------------------
-
-  function renderList() {
-    const list = $('candidate-list');
-    list.replaceChildren();
-    if (state.files.length === 0) list.append(el('li', 'empty', 'Geen gedeelde bestanden in je OneDrive. 🌿'));
-    for (const f of state.files) {
-      const row = append(el('li', `file-row${f.id === state.currentId ? ' is-current' : ''}`),
-        fileIcon(f.filename),
-        append(el('div', 'file-row-main'),
-          el('div', 'file-row-name', f.filename),
-          el('div', 'file-row-meta', `Gedeeld bestand · ${formatSize(f.size_mb)} · ${f.activity === 'active' ? 'actief' : 'slapend'}`)),
-        append(el('span', 'file-row-band'), co2Amount(f.estimate.co2_per_year, { suffix: '', info: false, stacked: true })),
-        button('Bekijken', 'btn btn-secondary btn-sm', () => {
-          state.currentId = f.id;
-          renderNudge();
-          renderList();
-          $('nudge-slot').scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }));
-      list.append(row);
-    }
-    const note = $('snoozed-note');
-    note.hidden = state.snoozedCount === 0;
-    note.textContent = `${plural(state.snoozedCount, 'bestand', 'bestanden')} tijdelijk verborgen omdat je "Nu niet" koos.`;
-  }
-
-  // --- Duplicate chains --------------------------------------------------------------------
-
-  function renderChains() {
-    const container = $('chain-list');
-    container.replaceChildren();
-    if (state.chains.length === 0) container.append(el('p', 'empty', 'Geen dubbele kopieën gevonden.'));
-
-    for (const ch of state.chains) {
-      const card = el('article', 'chain');
-      append(card,
-        append(el('div', 'chain-head'), fileIcon(ch.filename), el('span', 'chain-name', ch.filename)),
-        el('p', 'chain-meta',
-          `${ch.total_copies} identieke kopieën in de gemeente · ${ch.my_copies.length} bij jou` +
-          ` · ${formatSize(ch.size_mb)} per stuk`),
-        el('p', 'chain-meta', ch.master
-          ? `Origineel: SharePoint › ${ch.master.site} › ${ch.master.folder}`
-          : 'Nog geen centrale versie op SharePoint.'),
-        append(el('p', 'chain-meta', `Verspilling hele reeks: ${ch.chain_waste.co2_per_year.label} per jaar (${formatSize(ch.size_mb * (ch.total_copies - 1))} dubbel) `),
-          co2Example(ch.chain_waste.co2_per_year.equivalent)));
-
-      const copies = el('ul', 'chain-copies');
-      for (const c of ch.my_copies) copies.append(el('li', '', `${c.filename} (${c.folder})`));
-      card.append(copies);
-
-      const foot = el('div', 'chain-foot');
-      if (ch.can_consolidate) {
-        foot.append(append(el('span', 'small muted', `Jij kunt ${formatSize(ch.size_mb * ch.removable_count)} vrijmaken: `),
-          co2Amount(ch.my_saving.co2_per_year, { info: false })),
-          button('Ruim mijn kopieën op…', 'btn btn-secondary btn-sm', () => confirmConsolidate(ch)));
-      } else {
-        foot.append(el('span', 'small muted', ch.master
-          ? 'Je hebt geen overbodige kopie. Tip: deel voortaan de SharePoint-link.'
-          : 'Tip: verhuis jouw versie naar SharePoint en deel de link met je collega\'s.'));
-      }
-      card.append(foot);
-      container.append(card);
-    }
-  }
-
-  /** Explicit consent dialog before anything goes to the recycle bin. */
-  function confirmConsolidate(chain) {
-    const dialog = $('confirm-dialog');
-    const removable = chain.master ? chain.my_copies : chain.my_copies.slice(1);
-    const body = $('confirm-body');
-    body.replaceChildren(
-      el('p', '', chain.master
-        ? `Het origineel blijft bewaard op SharePoint (${chain.master.site}). Deze kopieën uit jouw OneDrive gaan naar je prullenbak:`
-        : `"${chain.my_copies[0].filename}" wordt eerst verhuisd naar SharePoint als centrale versie. Deze kopieën gaan naar je prullenbak:`),
-      append(el('ul'), ...removable.map((c) => el('li', '', `${c.filename} (${c.folder})`))),
-      el('p', '', 'Je kunt ze 93 dagen lang terugzetten. Kopieën van collega\'s blijven onaangeroerd.'));
-
-    const ok = $('confirm-ok');
-    const cancel = $('confirm-cancel');
-    const close = () => { dialog.close(); ok.onclick = null; cancel.onclick = null; };
-    cancel.onclick = close;
-    ok.onclick = async () => {
-      close();
-      try {
-        const result = await api.consolidate(chain.content_hash);
-        toast(`${plural(result.recycled.length, 'kopie', 'kopieën')} naar de prullenbak · ${co2Text(result.estimate.co2_per_year)} bespaard.`, {
-          actionLabel: 'Ongedaan maken',
-          ms: 10_000,
-          onAction: async () => {
-            for (const r of result.recycled) await api.restore(r.id);
-            toast('Teruggezet. Er is niets verloren gegaan.');
-            await ctx.refreshAll();
-          },
-        });
-        await ctx.refreshAll();
-      } catch (err) {
-        toast(err.message);
-      }
-    };
-    dialog.showModal();
+  function renderActions(actions) {
+    const list = $('action-list');
+    list.replaceChildren(...sortActions(actions).map(renderAction).filter(Boolean));
   }
 
   return {
     async load() {
       $('hub-greeting').textContent = `Hoi ${firstName(ctx.me.user.display_name)} 👋`;
       if (!ctx.me.admin_consent_granted) {
-        state.files = []; state.chains = [];
-        $('nudge-slot').replaceChildren();
-        renderList(); renderChains();
+        $('action-list').replaceChildren(el('li', 'empty', 'Er zijn nog geen acties: OpruimCoach heeft eerst toestemming van een beheerder nodig.'));
         return;
       }
-      const [scan, chains] = await Promise.all([api.scan(), api.chains()]);
-      state.files = scan.files;
-      state.snoozedCount = scan.snoozed_count;
-      state.chains = chains.chains;
-      if (!state.files.some((f) => f.id === state.currentId)) state.currentId = null;
-      renderNudge();
-      renderList();
-      renderChains();
+      const { actions } = await api.actions();
+      renderActions(actions);
     },
   };
 }

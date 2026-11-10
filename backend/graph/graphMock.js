@@ -50,6 +50,7 @@ export function createGraphMock(db, { now = () => new Date() } = {}) {
     folderName: db.prepare('SELECT name FROM onedrive_items WHERE id = ?'),
     ensureSpFolder: db.prepare('INSERT OR IGNORE INTO sharepoint_folders (site_id, name) VALUES (?, ?)'),
     spFolderId: db.prepare('SELECT id FROM sharepoint_folders WHERE site_id = ? AND name = ?'),
+    spFolderById: db.prepare('SELECT id, site_id, name FROM sharepoint_folders WHERE id = ?'),
     move: db.prepare(`
       UPDATE files SET current_location = 'SharePoint', onedrive_folder_id = NULL,
                        sharepoint_folder_id = :spFolder, department = :department
@@ -80,6 +81,20 @@ export function createGraphMock(db, { now = () => new Date() } = {}) {
     return site;
   }
 
+  /**
+   * The folder a file is moved into. The chosen folder must belong to the chosen
+   * site (otherwise someone could move a file into a site they are not a member of).
+   */
+  function targetFolder(site, folderId) {
+    if (folderId === undefined) {
+      q.ensureSpFolder.run(site.id, MOVED_FOLDER);
+      return { id: q.spFolderId.get(site.id, MOVED_FOLDER).id, name: MOVED_FOLDER };
+    }
+    const folder = q.spFolderById.get(folderId);
+    if (!folder || folder.site_id !== site.id) throw new HttpError(404, 'Deze map bestaat niet op de gekozen teamsite.');
+    return folder;
+  }
+
   return {
     requireScope,
 
@@ -104,9 +119,13 @@ export function createGraphMock(db, { now = () => new Date() } = {}) {
     /**
      * PATCH /me/drive/items/{id}  body { parentReference: { driveId: <site library>, id: <folder> } }
      * (Files.ReadWrite.All — writes to two drives: personal OneDrive and site library)
-     * @returns {{ file: object, site: object, fromFolder: string }}
+     * TODO(teams): a move between two drives may not be supported by PATCH; see
+     * "Open risks for the Teams version" in ARCHITECTURE.md.
+     * @param {number} [folderId] folder chosen by the user; without it the coach's own
+     *   "Verhuisd vanuit OneDrive" folder is used (e.g. for duplicate clean-up)
+     * @returns {{ file: object, site: object, folder: { id: number, name: string }, fromFolder: string }}
      */
-    moveToSharePoint(actor, fileId, siteId) {
+    moveToSharePoint(actor, fileId, siteId, folderId) {
       requireScope(actor, GRAPH_SCOPES.FILES_READWRITE_ALL);
       const file = ownFile(actor, fileId);
       if (file.status !== 'active') throw new HttpError(409, 'Dit bestand staat in de prullenbak.');
@@ -114,11 +133,10 @@ export function createGraphMock(db, { now = () => new Date() } = {}) {
       const site = memberSite(actor, siteId);
 
       const fromFolder = q.folderName.get(file.onedrive_folder_id).name;
-      q.ensureSpFolder.run(site.id, MOVED_FOLDER);
-      const spFolder = q.spFolderId.get(site.id, MOVED_FOLDER).id;
-      const { changes } = q.move.run({ id: file.id, spFolder, department: site.department ?? file.department });
+      const folder = targetFolder(site, folderId);
+      const { changes } = q.move.run({ id: file.id, spFolder: folder.id, department: site.department ?? file.department });
       if (changes !== 1) throw new HttpError(409, 'Dit bestand is al verplaatst.'); // concurrent request
-      return { file: q.fileById.get(file.id), site, fromFolder };
+      return { file: q.fileById.get(file.id), site, folder: { id: folder.id, name: folder.name }, fromFolder };
     },
 
     /**

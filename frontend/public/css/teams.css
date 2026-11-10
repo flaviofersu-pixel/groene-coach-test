@@ -85,38 +85,7 @@
 .file-ic--word { background: #185abd; } .file-ic--excel { background: #107c41; } .file-ic--ppt { background: #c43e1c; }
 .file-ic--pdf { background: #b30b00; } .file-ic--video { background: #6b3fa0; } .file-ic--zip { background: #6b6b6b; }
 
-/* --- Nudge (Feature B) --------------------------------------------------- */
-.nudge {
-  display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px;
-  padding: 18px; margin-bottom: 16px; border-radius: var(--radius-lg);
-  background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--success);
-  box-shadow: var(--shadow); animation: nudge-in 240ms ease-out;
-}
-@keyframes nudge-in { from { opacity: 0; transform: translateY(8px); } }
-.nudge-avatar { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--success-soft); font-size: 20px; }
-.nudge-from { font-size: 12px; color: var(--text-2); margin-bottom: 2px; }
-.nudge-title { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
-.nudge-text { color: var(--text-2); max-width: 70ch; }
-.nudge-file { display: flex; align-items: center; gap: 10px; margin-top: 12px; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2); }
-.nudge-file-name { font-weight: 600; overflow-wrap: anywhere; }
-.nudge-file-meta { font-size: 12px; color: var(--text-muted); }
-.nudge-estimate { margin-top: 10px; font-size: 13px; color: var(--text-2); }
-.nudge-estimate strong { color: var(--text); }
-.nudge-details { margin-top: 4px; font-size: 12px; color: var(--text-2); }
-.nudge-details summary { cursor: pointer; color: var(--brand); font-weight: 600; }
-.nudge-details ul { margin: 6px 0 0; padding-left: 18px; }
-.nudge-target { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 12px; font-size: 13px; }
-.nudge-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
-.nudge-done { display: flex; align-items: center; gap: 14px; }
-.nudge-error { margin-top: 10px; padding: 6px 10px; border-radius: 6px; background: var(--danger-soft); font-size: 13px; }
-
-.check { flex: none; width: 48px; height: 48px; }
-.check circle { fill: var(--success-soft); stroke: var(--success); stroke-width: 2.5; }
-.check path { fill: none; stroke: var(--success); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 40; stroke-dashoffset: 40; animation: draw-check 420ms 120ms ease-out forwards; }
-@keyframes draw-check { to { stroke-dashoffset: 0; } }
-@media (prefers-reduced-motion: reduce) { .check path { stroke-dashoffset: 0; } }
-
-/* --- Candidate list (Feature A) ----------------------------------------------- */
+/* --- File lists (ready list, OneDrive column) ------------------------------- */
 .file-list { list-style: none; margin: 0; padding: 0; }
 .file-row { display: flex; align-items: center; gap: 10px; padding: 9px 4px; border-bottom: 1px solid var(--grid); }
 .file-row:last-child { border-bottom: 0; }
@@ -244,17 +213,78 @@ code { font-size: 12px; background: var(--surface-2); padding: 1px 5px; border-r
 .toast { display: flex; align-items: center; gap: 12px; }
 .toast-action { border: 0; background: none; color: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; padding: 0; }
 
+/* --- Actie-hub: action list (like Windows "Energy recommendations") ------- */
+.action-list { list-style: none; margin: 0; padding: 0; }
+.action-row { display: flex; align-items: center; gap: 14px; padding: 14px 6px; border-bottom: 1px solid var(--grid); }
+.action-row:last-child { border-bottom: 0; }
+.action-icon { display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: 10px; background: var(--brand-soft); color: var(--brand); }
+.action-icon .ic, .action-icon .ic svg { width: 22px; height: 22px; }
+.action-main { flex: 1; min-width: 0; }
+.action-title { font-size: 15px; font-weight: 600; }
+.action-sub { display: block; margin-top: 3px; font-size: 13px; color: var(--text-2); }
+.action-row.is-done .action-icon { background: var(--success-soft); color: var(--success-text); }
+.action-row.is-done .action-title { color: var(--text-2); font-weight: 400; }
+.ic-line { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+/* --- Verkenner: sub-tabs ------------------------------------------------- */
+.subtabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 16px; padding: 3px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border); width: fit-content; max-width: 100%; }
+.subtab { border: 0; background: transparent; padding: 6px 14px; border-radius: 6px; cursor: pointer; color: var(--text-2); font-weight: 600; }
+.subtab[aria-selected="true"] { background: var(--surface); color: var(--text); box-shadow: 0 1px 2px rgb(0 0 0 / 0.12); }
+.subtab:hover { color: var(--text); }
+
+/* --- Verkenner: ready list ------------------------------------------------- */
+.ready-row { align-items: flex-start; }
+.ready-reason { margin-top: 4px; font-size: 13px; color: var(--text); }
+.ready-target { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 13px; font-weight: 600; color: var(--text-2); }
+.ready-side { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; max-width: 45%; text-align: right; font-size: 12px; }
+.ready-side .co2 { align-items: flex-end; }
+.row-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+.file-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+
+/* --- Verkenner: two Explorer windows, drag a file onto a team-site folder -- */
+.board-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; margin-bottom: 12px; }
+.board-hint { max-width: 75ch; color: var(--text-2); }
+.filter-label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
+.filter-note { margin: 0 0 12px; padding: 8px 10px; border-radius: 6px; background: var(--warning-soft); color: var(--warning-text); font-size: 13px; }
+.board { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; margin-bottom: 16px; scroll-margin-top: 12px; }
+.board .explorer-tree { max-height: 600px; }
+
+/* OneDrive file rows: name, "Laatst bewerkt", tags, and the keyboard alternative. */
+.od-file { align-items: flex-start; padding-top: 4px; padding-bottom: 4px; cursor: grab; }
+.od-file:hover { background: var(--surface-2); }
+.od-file.is-dragging { opacity: 0.45; }
+.tree-file-main { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.tree-file-meta { font-size: 11px; color: var(--text-muted); }
+.od-file .file-tags { margin-top: 2px; }
+.tree-action { flex: none; margin-left: auto; font-size: 12px; }
+.sp-file { color: var(--text-2); }
+.sp-file .tree-file-meta { margin-left: auto; padding-left: 8px; white-space: nowrap; }
+.sp-file.is-just-moved { background: var(--success-soft); color: var(--text); font-weight: 600; }
+
+/* Drop zones: while a file is dragged, every team-site folder shows it accepts files. */
+.drop-hint { display: none; margin-left: auto; font-size: 11px; color: var(--brand); font-weight: 600; }
+body.is-dragging-file .sp-folder > summary .tree-row { outline: 1px dashed var(--brand); outline-offset: -1px; }
+body.is-dragging-file .sp-folder > summary .drop-hint { display: inline; }
+.sp-folder.is-drop-target { background: var(--brand-soft); border-radius: 4px; }
+.sp-folder.is-drop-target > summary .tree-row { outline: 2px solid var(--brand); outline-offset: -2px; background: var(--brand-soft); }
+
+/* --- Verkenner: "Voor en na" explanation ----------------------------------- */
+.move-explainer { max-width: 90ch; margin-bottom: 14px; padding: 10px 14px; border-left: 4px solid var(--brand); border-radius: 6px; background: var(--brand-soft); }
+
+/* --- Move dialog ----------------------------------------------------------- */
+.move-file-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; margin-bottom: 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2); }
+.move-target { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; font-weight: 600; }
+.move-estimate { margin-top: 10px; font-size: 13px; color: var(--text-2); }
+
 /* --- Responsive ---------------------------------------------------------- */
 @media (max-width: 960px) {
-  .grid-2, .explorer-compare { grid-template-columns: minmax(0, 1fr); }
+  .grid-2, .explorer-compare, .board { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 640px) {
   .teams-rail, .teams-search, .sim-user-text { display: none; }
   .teams-main { padding: 0 16px 32px; }
   .tab-header { margin: 0 -16px 16px; padding: 0 16px; }
   .sim-user { margin-left: 0; }
-  .nudge { grid-template-columns: minmax(0, 1fr); }
-  .nudge-avatar { display: none; }
   .range-row { grid-template-columns: minmax(0, 1fr) auto; }
   .range-track { grid-column: 1 / -1; grid-row: 2; }
 }

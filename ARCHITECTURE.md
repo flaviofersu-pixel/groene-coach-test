@@ -273,14 +273,17 @@ Base: `http://127.0.0.1:3001/api` (or via the proxy at `:3000/api`). Errors alwa
 | GET | `/auth/simulated-users` | – (demo only) | – | User picker |
 | POST | `/auth/simulated-sso` | – (demo only) | – | `{userId}` → 15-minute Bearer token |
 | GET | `/user/me` | Bearer | `User.Read` | Profile, granted scopes, site memberships (+ `mapped`) |
-| GET | `/files/scan-onedrive` | Bearer | `Files.Read.All` | **Feature A**: own OneDrive files with `times_shared > 2`, not snoozed, with a CO2 band and breakdown |
+| GET | `/files/scan-onedrive` | Bearer | `Files.Read.All` | **Klaar om te verhuizen**: own shared OneDrive files (`times_shared > 2`), not snoozed, with a CO2 band, a suggested team site and a one-line reason |
+| GET | `/files/onedrive` | Bearer | `Files.Read.All` | All own OneDrive files for the Verkenner: last edited, shared yes/no (never a count), old (> 365 days), has an identical copy |
+| GET | `/files/actions` | Bearer | `Files.Read.All` | The Actie-hub action list: counts + summed savings (move, duplicates); no figure for old files or shortcuts |
 | GET | `/files/mine` | Bearer | `Files.Read.All` | Own active files (Outlook attachment picker) |
-| GET | `/files/duplicate-chains` | Bearer | `Files.Read.All` | Identical-copy chains in which the user owns a copy |
-| POST | `/files/migrate-to-sharepoint` | Bearer | **`Files.ReadWrite.All`** | `{fileId, siteId?}` → move to the (default: department) site |
+| GET | `/files/duplicate-chains` | Bearer | `Files.Read.All` | Identical copies (same hash) in the user's **own** OneDrive, plus the original on a team site they are a member of. Colleagues' OneDrives are never looked at |
+| POST | `/files/migrate-to-sharepoint` | Bearer | **`Files.ReadWrite.All`** | `{fileId, siteId?, folderId?}` → move into the folder the user chose (the folder must belong to that site, else 404); without `folderId`: the site's "Verhuisd vanuit OneDrive" folder |
 | POST | `/files/snooze` | Bearer | `Files.Read.All` | `{fileId}` "Nu niet" → hidden for 7 days (201) |
 | POST | `/files/consolidate-duplicates` | Bearer | **`Files.ReadWrite.All`** | `{contentHash, confirmed: true}` → own copies to the recycle bin |
 | POST | `/files/:id/restore` | Bearer | **`Files.ReadWrite.All`** | Undo: recycle bin → OneDrive |
 | POST | `/user/map-sharepoint-shortcut` | Bearer | **`Files.ReadWrite.All`** | `{siteId?}` → insert a SharePoint shortcut into the OneDrive root (201 created / 200 existing) |
+| GET | `/user/sharepoint-tree` | Bearer | `Files.Read.All` | Team sites the user is a member of → library folders → files (names, sizes, dates). Real version: `/me/joinedTeams` + `/drives/{id}/root/children` |
 | GET | `/user/explorer-view` | Bearer | `Files.Read.All` | Before/after trees for the Explorer preview |
 | POST | `/outlook/evaluate-send` | Bearer | `Files.Read.All` | `{fileIds, recipientCount}` → alert decision, message, bands |
 | POST | `/outlook/resolve` | Bearer | `Files.Read.All` | `{decision: share_link\|send_anyway\|cancel, …}` → aggregated telemetry, sharing links |
@@ -348,7 +351,7 @@ co2_metrics            (key, label, value_low, value_high, unit, category, deriv
 
 | Page | Simulates | Key behaviour |
 |---|---|---|
-| `index.html` | Teams personal app "OpruimCoach" | **Actie-hub**: the nudge with the exact copy *"Samen groener werken, [Naam]? 🌿 …"*, Ja/Nu niet, a choice of target site, a green checkmark, then **"Toon map in Verkenner"**; the list of shared files; duplicate chains with a confirmation dialog and undo. **Verkenner**: site cards with "Toon map in Verkenner", and a before/after Windows Explorer preview (`<details>` tree, "Nieuw" badge on the shortcut, moved files tagged). **Impact**: range bars per department, metaphors, cloning waste, privacy note. **Privacy & berekening**: scopes from the token, plus the coefficient table. |
+| `index.html` | Teams personal app "OpruimCoach" | **Actie-hub**: a list of recommended actions (like *Energy recommendations* in Windows Settings), each with a title, the estimated saving and a button that opens the Verkenner on the right part/filter. **Verkenner**, four sub-tabs: *Verhuizen* (two Windows-Explorer-style windows: the user drags a OneDrive file onto the **folder** of a team site where it belongs; closed sites/folders open on hover, the destination folder opens afterwards with a "Net verhuisd" label; the keyboard-friendly "Verhuizen…" button opens the same dialog with a folder choice; every file shows "Laatst bewerkt …"; below: "Klaar om te verhuizen" with a suggested team site + reason); *Dubbele kopieën* (confirmation dialog + undo); *Mijn SharePoint-sites* ("Toon map in Verkenner"); *Voor en na* (before/after Explorer preview, moved files labelled with the destination team site by name). Every move goes through one dialog that explains what moving means and names the destination. **Impact**: range bars per department, metaphors, cloning waste, privacy note. **Privacy & berekening**: scopes from the token, plus the coefficient table. |
 | `outlook.html` | Outlook on the web + OnMessageSend Smart Alert | A live "clone" visual of the Rick van Kersbergen rule. On send: an alert dialog with **Deel als link / Toch verzenden / Terug naar bericht**. Only sizes and the recipient count are sent to the API. |
 
 Security in the browser: a strict CSP (`default-src 'self'`, no inline scripts, no CDN, so it works offline on the VM), all dynamic text via `textContent` (XSS-safe), and the token in memory only. Accessibility: keyboard tabs, ARIA roles, a table view for the chart, `prefers-reduced-motion`. **Theme:** light by default (the OS dark setting is ignored on purpose, at the product owner's request); inside Teams the tab follows the user's Teams theme via the `?theme={theme}` placeholder in [`teams/manifest.json`](teams/manifest.json), see `frontend/public/js/theme.js`.
@@ -357,10 +360,11 @@ Security in the browser: a strict CSP (`default-src 'self'`, no inline scripts, 
 
 ## 9. Testing
 
-`npm test` runs **28 automated tests** (Node's built-in test runner):
+`npm test` runs **34 automated tests** (Node's built-in test runner):
 
 - **CO2 engine (14):** the 3.6 g/GB/yr derivation and the consistency of the stored derived rows, "single move = 0 storage", the sync formula, the backup lower bound of 0, active vs. dormant, duplicate removal, the Rick van Kersbergen 20× rule, cumulative waste, metaphors, outward band rounding, the everyday example (phone vs. kettle, honest labels), and fail-loud validation.
-- **API (14):** 401 for missing, forged and expired tokens; the Action Hub filter; migrate, then 409, then 403 for a foreign file; snooze; clean-up that requires confirmation, recycles without deleting, and can be undone; the DB trigger blocking `DELETE`; mapper idempotency and the explorer view; 403 for a non-member site; Smart Alert amplification and send-anyway; k-anonymous impact without user columns; the coefficient table; input validation; and a separate run **without admin consent** (403 everywhere, banner flag).
+- **Display helpers (2):** plain-Dutch "Laatst bewerkt … geleden".
+- **API (18):** moving into a chosen folder (and refusing a folder of another site); 401 for missing, forged and expired tokens; the ready list (destination + reason); the OneDrive list (honest dates, no people counts); the Actie-hub action list; duplicates limited to your own OneDrive; migrate, then 409, then 403 for a foreign file; snooze; clean-up that requires confirmation, recycles without deleting, and can be undone; the DB trigger blocking `DELETE`; mapper idempotency and the explorer view; 403 for a non-member site; Smart Alert amplification and send-anyway; k-anonymous impact without user columns; the coefficient table; input validation; and a separate run **without admin consent** (403 everywhere, banner flag).
 
 ---
 

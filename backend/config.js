@@ -48,6 +48,9 @@ export const config = Object.freeze({
   /** Action Hub rule from the brief: OneDrive files with times_shared > 2. */
   shareThreshold: 2,
 
+  /** Files not edited for this many days count as "lang niet bewerkt" (Actie-hub + Verkenner filter). */
+  oldFileDays: 365,
+
   /** "Nu niet" hides a suggestion for this many days; the snooze row is then purged. */
   snoozeDays: 7,
 
