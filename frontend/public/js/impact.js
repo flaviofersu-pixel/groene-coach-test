@@ -2,9 +2,11 @@
  * @file impact.js
  * @description Feature C: the metaphor dashboard (collective impact).
  *
- * Every number is a band from the API. The department chart draws each band
- * as an interval bar (low -> high) on one shared axis, so uncertainty is
- * visible instead of hidden. A table view carries the same data.
+ * Savings are shown per TEAM (as people know them from Microsoft Teams), never
+ * per department: a move counts for the team the document went to.
+ * Every number is a band from the API. The team chart draws each band as an
+ * interval bar (low -> high) on one shared axis, so uncertainty is visible
+ * instead of hidden. A table view carries the same data.
  */
 
 import { api } from './api.js';
@@ -24,15 +26,15 @@ export function createImpact(ctx) {
     return append(el('article', 'kpi'), el('h3', 'kpi-label', label), valueNode, el('p', 'kpi-sub', sub));
   }
 
-  function renderKpis({ personal, department, organisation }) {
+  function renderKpis({ personal, my_teams: myTeams, organisation }) {
     const mail = organisation.email_cloning;
     $('impact-kpis').replaceChildren(
       kpi('Jouw bijdrage (alleen voor jou)', co2Amount(personal.co2_per_year, { suffix: '', stacked: true }),
         `per jaar · ${plural(personal.actions, 'actie', 'acties')} · ${formatSize(personal.mb_moved)} verhuisd · ${formatSize(personal.storage_freed_mb)} opgeruimd`),
-      department.suppressed
-        ? kpi(`Afdeling ${department.name}`, 'Niet getoond', department.reason)
-        : kpi(`Afdeling ${department.name}`, co2Amount(department.co2_per_year, { suffix: '', stacked: true }),
-          `per jaar · ${department.members} collega's · ${plural(department.migrations, 'verhuizing', 'verhuizingen')}`),
+      myTeams.suppressed
+        ? kpi('Jouw teams', 'Niet getoond', myTeams.reason)
+        : kpi('Jouw teams', co2Amount(myTeams.co2_per_year, { suffix: '', stacked: true }),
+          `per jaar · ${plural(myTeams.team_count, 'team', 'teams')} · ${plural(myTeams.migrations, 'document', 'documenten')} naar de teamsite verhuisd`),
       kpi('Hele gemeente', co2Amount(organisation.co2_per_year, { suffix: '', stacked: true }),
         `per jaar · ${organisation.migrations} verhuizingen · ${organisation.mail_links} links i.p.v. bijlagen`),
       kpi('Bijlagen-klonen (gemeente)', formatSize(mail.duplicate_mb),
@@ -53,23 +55,32 @@ export function createImpact(ctx) {
       return;
     }
     const eq = scopeData.equivalents;
-    const mail = scopeData.email_cloning;
-    container.replaceChildren(
+    const cards = [
       metaphor('🏮', `${eq.lamp_hours.label} lantaarnuren`,
         'Zoveel grachtenlantaarns (LED, 40 W) kun je een uur laten branden op de bespaarde stroom per jaar.'),
       metaphor('❄️', eq.cooling_kwh.label,
         'Daarvan is koeling en overhead in datacenters (PUE 1,185). Netwerkverkeer telt hier niet mee.'),
-      metaphor('📧', `${formatNumber(mail.average_amplification, 1)}× opslag`,
-        `Zo vaak wordt een gemiddelde bijlage opgeslagen: ${formatSize(mail.duplicate_mb)} aan kopieën in mailboxen (${co2Text(mail.co2_per_year)}). Met een link is dat een bestand.`),
-      metaphor('🗂️', `${formatSize(scopeData.storage_freed_mb)} opgeruimd`,
-        `Alleen identieke kopieën opruimen bespaart opslag. Daarnaast ${formatSize(scopeData.storage_avoided_mb)} aan mailbijlagen voorkomen met links.`));
+    ];
+    if (state.scope === 'my_teams') {
+      // Teams only get savings from documents moved to their team site.
+      cards.push(metaphor('📁', plural(scopeData.migrations, 'document', 'documenten'),
+        'verhuisd naar de teamsites van je teams. Daar kunnen collega\'s erbij en wordt alles bewaard volgens de bewaarregels.'));
+    } else {
+      const mail = scopeData.email_cloning;
+      cards.push(
+        metaphor('📧', `${formatNumber(mail.average_amplification, 1)}× opslag`,
+          `Zo vaak wordt een gemiddelde bijlage opgeslagen: ${formatSize(mail.duplicate_mb)} aan kopieën in mailboxen (${co2Text(mail.co2_per_year)}). Met een link is dat een bestand.`),
+        metaphor('🗂️', `${formatSize(scopeData.storage_freed_mb)} opgeruimd`,
+          `Alleen identieke kopieën opruimen bespaart opslag. Daarnaast ${formatSize(scopeData.storage_avoided_mb)} aan mailbijlagen voorkomen met links.`));
+    }
+    container.replaceChildren(...cards);
   }
 
   function showTooltip(row, d, x, y) {
     tooltip.replaceChildren(
       el('strong', '', d.name),
       el('div', '', co2Text(d.co2_per_year)),
-      el('div', '', `${plural(d.actions, 'actie', 'acties')} (verhuizingen, opgeruimde kopieën, links)`));
+      el('div', '', `${plural(d.actions, 'document', 'documenten')} naar de teamsite verhuisd`));
     tooltip.hidden = false;
     const rect = row.getBoundingClientRect();
     const px = x ?? rect.left + rect.width / 2;
@@ -80,11 +91,11 @@ export function createImpact(ctx) {
   const hideTooltip = () => { tooltip.hidden = true; };
 
   /** Interval bars: one shared axis from 0 to the largest upper bound. */
-  function renderChart(departments) {
-    const max = Math.max(...departments.map((d) => d.co2_high_g), 1);
-    const chart = $('dept-chart');
+  function renderChart(teams) {
+    const max = Math.max(...teams.map((d) => d.co2_high_g), 1);
+    const chart = $('team-chart');
     chart.replaceChildren();
-    for (const d of departments) {
+    for (const d of teams) {
       const row = el('div', `range-row${d.is_mine ? ' is-mine' : ''}`);
       row.setAttribute('role', 'listitem');
       row.tabIndex = 0;
@@ -100,8 +111,8 @@ export function createImpact(ctx) {
       row.addEventListener('blur', hideTooltip);
       chart.append(row);
     }
-    $('dept-table').replaceChildren(...departments.map((d) => append(el('tr'),
-      el('td', '', d.name + (d.is_mine ? ' (jouw afdeling)' : '')),
+    $('team-table').replaceChildren(...teams.map((d) => append(el('tr'),
+      el('td', '', d.name + (d.is_mine ? ' (jouw team)' : '')),
       el('td', 'num', String(d.actions)),
       el('td', 'num', formatNumber(d.co2_low_g, 2)),
       el('td', 'num', formatNumber(d.co2_high_g, 2)))));
@@ -120,9 +131,9 @@ export function createImpact(ctx) {
     const showTable = e.currentTarget.getAttribute('aria-pressed') !== 'true';
     e.currentTarget.setAttribute('aria-pressed', String(showTable));
     e.currentTarget.textContent = showTable ? 'Grafiek' : 'Tabel';
-    $('dept-chart').hidden = showTable;
+    $('team-chart').hidden = showTable;
     $('chart-key').hidden = showTable;
-    $('dept-table-wrap').hidden = !showTable;
+    $('team-table-wrap').hidden = !showTable;
   });
 
   return {
@@ -130,8 +141,8 @@ export function createImpact(ctx) {
       state.data = await api.impact();
       renderKpis(state.data);
       renderMetaphors();
-      renderChart(state.data.departments);
-      $('privacy-note').textContent = `🔒 ${state.data.privacy.note} Afdelingen met minder dan ${state.data.privacy.min_group_size} collega's vallen onder "Overige afdelingen".`;
+      renderChart(state.data.teams);
+      $('privacy-note').textContent = `🔒 ${state.data.privacy.note} Teams met minder dan ${state.data.privacy.min_group_size} leden vallen onder "Overige teams".`;
     },
   };
 }

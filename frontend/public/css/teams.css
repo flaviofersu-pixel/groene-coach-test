@@ -170,7 +170,8 @@
 .key-swatch { display: inline-block; width: 14px; height: 8px; border-radius: 4px; background: var(--series-muted); margin-right: -8px; }
 .key-swatch--mine { background: var(--series-1); }
 .ranges { display: flex; flex-direction: column; gap: 2px; }
-.range-row { display: grid; grid-template-columns: minmax(100px, 30%) 1fr auto; align-items: center; gap: 12px; padding: 6px 4px; border-radius: 6px; }
+/* Fixed value column: every track gets the same width, so all bars share one axis. */
+.range-row { display: grid; grid-template-columns: minmax(100px, 25%) 1fr 260px; align-items: center; gap: 12px; padding: 6px 4px; border-radius: 6px; }
 .range-row:hover, .range-row:focus-visible { background: var(--surface-2); }
 .range-label { font-size: 13px; color: var(--text-2); overflow-wrap: anywhere; }
 .range-row.is-mine .range-label { color: var(--text); font-weight: 600; }

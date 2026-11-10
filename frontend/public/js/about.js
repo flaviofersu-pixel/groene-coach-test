@@ -12,10 +12,10 @@ const $ = (id) => document.getElementById(id);
 
 /** Why each delegated Graph scope is needed. */
 const SCOPES = [
-  ['User.Read', 'Je naam en afdeling, om de juiste SharePoint-site voor te stellen.'],
+  ['User.Read', 'Je naam, voor de begroeting.'],
   ['Files.Read.All', 'Je OneDrive bekijken: of bestanden gedeeld zijn en welke kopieën identiek zijn.'],
   ['Files.ReadWrite.All', 'Bestanden verplaatsen naar SharePoint, snelkoppelingen toevoegen en kopieën naar de prullenbak zetten, alleen na jouw klik. Vereist admin consent.'],
-  ['Sites.Read.All', 'De SharePoint-sites tonen waarvan je lid bent.'],
+  ['Sites.Read.All', 'De teamsites tonen waarvan je lid bent, met hun mappen.'],
 ];
 
 /** @param {object} ctx shared app context (see app.js) */

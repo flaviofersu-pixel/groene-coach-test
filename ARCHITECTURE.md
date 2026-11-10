@@ -16,7 +16,7 @@
 | Can it delete data? | **No.** No code path hard-deletes a file, and a database trigger blocks it. Identical copies can go to the recycle bin (restorable for 93 days), but only after the user explicitly confirms. |
 | Who decides? | Always the civil servant. Every action needs a click. "Nu niet" is honoured immediately, and Outlook always offers "Toch verzenden". |
 | Which Graph permission is sensitive? | `Files.ReadWrite.All` (delegated). The tenant requires **admin consent** for it. The app only acts *as the signed-in user* and therefore never gets more access than that user already has. |
-| What personal data is processed? | File metadata of the user's own OneDrive, a 7-day "Nu niet" marker and a personal action log (365 days) that only the user can see. Organisation figures are **aggregated per department, without user ids**, with a minimum group size of 3. |
+| What personal data is processed? | File metadata of the user's own OneDrive, a 7-day "Nu niet" marker and a personal action log (365 days) that only the user can see. Organisation figures are **aggregated per team, without user ids**, with a minimum group size of 3. |
 | Is the CO2 claim honest? | Yes, by design. It uses the updated Dutch grid mix (0.268 kg/kWh), 0.65 W/TB and a PUE of 1.185, and all results are ranges. A single move is reported as **0 bytes of storage saved**. |
 
 ---
@@ -123,7 +123,7 @@ Teams client ──getAuthToken()──► SSO token (aud = api://groenecoach, s
 | File metadata of own OneDrive (name, size, share count, modified date, hash) | Yes (work context) | Coaching suggestions | Not stored by the tool. Read live from Graph (simulated here) | Only the user |
 | `snoozes` ("Nu niet") | Yes | Not asking again for 7 days | **Deleted when it expires** (hourly retention job) | Nobody (functional) |
 | `migration_log` (own actions) | Yes | "Jouw bijdrage", undo, accountability | **365 days**, then purged | **Only the user themselves** (token subject). No endpoint queries another person. |
-| `telemetry_daily` | **No**: per day × department × event type | Organisation and department impact | Indefinite (anonymous) | Everyone in the dashboard |
+| `telemetry_daily` | **No**: per day × department × team × event type | Organisation and team impact (a move counts for the destination team) | Indefinite (anonymous) | Everyone in the dashboard |
 | `mail_attachment_stats` | **No**: department, month, size, recipient *count* | Cumulative cloning waste | Indefinite (anonymous) | Everyone in the dashboard |
 | E-mail recipients, subject, body | Never processed | – | – | – |
 | File contents | Never processed | – | – | – |
@@ -131,8 +131,8 @@ Teams client ──getAuthToken()──► SSO token (aud = api://groenecoach, s
 ### 3.2 Principles applied
 
 - **Data minimisation (art. 5(1)(c)).** The Smart Alert receives attachment ids and a recipient **count**. No addresses, subject or body. Duplicate detection uses the content hash Graph already computes; contents are never read.
-- **Aggregation on write.** `telemetry.record()` has no user parameter. One counter row per day × department × event is incremented, and organisation and department dashboards read only these rows.
-- **k-anonymity (minimum group size 3).** A department is only shown when it has at least 3 members. Smaller units are merged into "Overige afdelingen". The demo data has 3 users per department to show this.
+- **Aggregation on write.** `telemetry.record()` has no user parameter. One counter row per day × department × team × event is incremented, and the organisation and team dashboards read only these rows. The department column is internal only and never shown.
+- **k-anonymity (minimum group size 3).** A team is only shown when it has at least 3 members. Smaller teams are merged into "Overige teams". **Per team, not per department or channel:** people recognise their teams from Microsoft Teams but often not their *afdeling*; channels were rejected because smaller groups are easier to trace back to one person. Real version: `/me/joinedTeams` (`Team.ReadBasic.All`); the member count needs `GroupMember.Read.All` (broader than minimal) or an alternative rule (show a team only after N actions).
 - **No profiling or ranking of individuals.** There is no leaderboard of people and no manager view of individuals. Colleagues who hold a duplicate are shown as a **count** ("2 collega's"), never by name.
 - **Storage limitation (art. 5(1)(e)).** `services/retention.js` purges expired snoozes and audit rows older than 365 days, at start-up and every hour.
 - **Transparency.** The "Privacy & berekening" tab explains all of the above in plain Dutch, and shows the granted Graph scopes and the CO2 coefficients.
@@ -287,7 +287,7 @@ Base: `http://127.0.0.1:3001/api` (or via the proxy at `:3000/api`). Errors alwa
 | GET | `/user/explorer-view` | Bearer | `Files.Read.All` | Before/after trees for the Explorer preview |
 | POST | `/outlook/evaluate-send` | Bearer | `Files.Read.All` | `{fileIds, recipientCount}` → alert decision, message, bands |
 | POST | `/outlook/resolve` | Bearer | `Files.Read.All` | `{decision: share_link\|send_anyway\|cancel, …}` → aggregated telemetry, sharing links |
-| GET | `/stats/impact` | Bearer | – | Personal (self only), department (k ≥ 3), organisation, cloning waste, metaphors |
+| GET | `/stats/impact` | Bearer | – | Personal (self only), `my_teams` and `teams` (k ≥ 3 members), organisation, cloning waste, metaphors. No department is named |
 
 **Status codes.** 400 invalid input (allow-list validators), 401 missing/invalid/expired token, 403 missing scope / not the owner / not a site member, 404 unknown item, 409 state conflict (already on SharePoint, nothing to clean up).
 
@@ -338,7 +338,7 @@ users ──────────────┘                 │
    ├─► snoozes        (user_id, file_id, until)          functional, auto-purged
    └─► migration_log  own audit trail, 365-day retention
 
-telemetry_daily        (day, department, event, counters, CO2/kWh bands)   NO user ids
+telemetry_daily        (day, department, team_site_id, event, counters, CO2/kWh bands)   NO user ids
 mail_attachment_stats  (department, month, size_mb, recipient_count)       NO identities
 co2_metrics            (key, label, value_low, value_high, unit, category, derivation, source)
 ```
@@ -351,7 +351,7 @@ co2_metrics            (key, label, value_low, value_high, unit, category, deriv
 
 | Page | Simulates | Key behaviour |
 |---|---|---|
-| `index.html` | Teams personal app "OpruimCoach" | **Actie-hub**: a list of recommended actions (like *Energy recommendations* in Windows Settings), each with a title, the estimated saving and a button that opens the Verkenner on the right part/filter. **Verkenner**, four sub-tabs: *Verhuizen* (two Windows-Explorer-style windows: the user drags a OneDrive file onto the **folder** of a team site where it belongs; closed sites/folders open on hover, the destination folder opens afterwards with a "Net verhuisd" label; the keyboard-friendly "Verhuizen…" button opens the same dialog with a folder choice; every file shows "Laatst bewerkt …"; below: "Klaar om te verhuizen" with a suggested team site + reason); *Dubbele kopieën* (confirmation dialog + undo); *Mijn SharePoint-sites* ("Toon map in Verkenner"); *Voor en na* (before/after Explorer preview, moved files labelled with the destination team site by name). Every move goes through one dialog that explains what moving means and names the destination. **Impact**: range bars per department, metaphors, cloning waste, privacy note. **Privacy & berekening**: scopes from the token, plus the coefficient table. |
+| `index.html` | Teams personal app "OpruimCoach" | **Actie-hub**: a list of recommended actions (like *Energy recommendations* in Windows Settings), each with a title, the estimated saving and a button that opens the Verkenner on the right part/filter. **Verkenner**, four sub-tabs: *Verhuizen* (two Windows-Explorer-style windows: the user drags a OneDrive file onto the **folder** of a team site where it belongs; closed sites/folders open on hover, the destination folder opens afterwards with a "Net verhuisd" label; the keyboard-friendly "Verhuizen…" button opens the same dialog with a folder choice; every file shows "Laatst bewerkt …"; below: "Klaar om te verhuizen" with a suggested team site + reason); *Dubbele kopieën* (confirmation dialog + undo); *Mijn SharePoint-sites* ("Toon map in Verkenner"); *Voor en na* (before/after Explorer preview, moved files labelled with the destination team site by name). Every move goes through one dialog that explains what moving means and names the destination. **Impact**: range bars per team (a move counts for the destination team), metaphors, cloning waste, privacy note. **Privacy & berekening**: scopes from the token, plus the coefficient table. |
 | `outlook.html` | Outlook on the web + OnMessageSend Smart Alert | A live "clone" visual of the Rick van Kersbergen rule. On send: an alert dialog with **Deel als link / Toch verzenden / Terug naar bericht**. Only sizes and the recipient count are sent to the API. |
 
 Security in the browser: a strict CSP (`default-src 'self'`, no inline scripts, no CDN, so it works offline on the VM), all dynamic text via `textContent` (XSS-safe), and the token in memory only. Accessibility: keyboard tabs, ARIA roles, a table view for the chart, `prefers-reduced-motion`. **Theme:** light by default (the OS dark setting is ignored on purpose, at the product owner's request); inside Teams the tab follows the user's Teams theme via the `?theme={theme}` placeholder in [`teams/manifest.json`](teams/manifest.json), see `frontend/public/js/theme.js`.
@@ -360,11 +360,11 @@ Security in the browser: a strict CSP (`default-src 'self'`, no inline scripts, 
 
 ## 9. Testing
 
-`npm test` runs **34 automated tests** (Node's built-in test runner):
+`npm test` runs **35 automated tests** (Node's built-in test runner):
 
 - **CO2 engine (14):** the 3.6 g/GB/yr derivation and the consistency of the stored derived rows, "single move = 0 storage", the sync formula, the backup lower bound of 0, active vs. dormant, duplicate removal, the Rick van Kersbergen 20× rule, cumulative waste, metaphors, outward band rounding, the everyday example (phone vs. kettle, honest labels), and fail-loud validation.
 - **Display helpers (2):** plain-Dutch "Laatst bewerkt … geleden".
-- **API (18):** moving into a chosen folder (and refusing a folder of another site); 401 for missing, forged and expired tokens; the ready list (destination + reason); the OneDrive list (honest dates, no people counts); the Actie-hub action list; duplicates limited to your own OneDrive; migrate, then 409, then 403 for a foreign file; snooze; clean-up that requires confirmation, recycles without deleting, and can be undone; the DB trigger blocking `DELETE`; mapper idempotency and the explorer view; 403 for a non-member site; Smart Alert amplification and send-anyway; k-anonymous impact without user columns; the coefficient table; input validation; and a separate run **without admin consent** (403 everywhere, banner flag).
+- **API (19):** savings counted for the destination team; moving into a chosen folder (and refusing a folder of another site); 401 for missing, forged and expired tokens; the ready list (destination + reason); the OneDrive list (honest dates, no people counts); the Actie-hub action list; duplicates limited to your own OneDrive; migrate, then 409, then 403 for a foreign file; snooze; clean-up that requires confirmation, recycles without deleting, and can be undone; the DB trigger blocking `DELETE`; mapper idempotency and the explorer view; 403 for a non-member site; Smart Alert amplification and send-anyway; k-anonymous impact without user columns; the coefficient table; input validation; and a separate run **without admin consent** (403 everywhere, banner flag).
 
 ---
 

@@ -91,11 +91,11 @@ export function createUserService({ db, graph, telemetry, now }) {
      */
     mapSharePointShortcut(actor, { siteId }) {
       const target = siteId ?? q.departmentSite.get(actor.department)?.id;
-      if (!target) throw new HttpError(409, 'Er is geen SharePoint-site voor jouw afdeling gevonden.');
+      if (!target) throw new HttpError(409, 'Er is geen teamsite voor je team gevonden.');
 
       const result = inTransaction(db, () => {
         const r = graph.addSharePointShortcut(actor, target);
-        if (r.created) telemetry.record({ department: actor.department, event: 'shortcut_mapped' });
+        if (r.created) telemetry.record({ department: actor.department, teamSiteId: target, event: 'shortcut_mapped' });
         return r;
       });
       return {

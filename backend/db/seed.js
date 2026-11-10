@@ -101,7 +101,7 @@ export function seedDatabase(db, { now = new Date() } = {}) {
     const siteName = new Map(SITES.map(([id, name]) => [id, name]));
     for (const [userId, siteId, ago] of EXISTING_SHORTCUTS) {
       q.odItem.run(userId, `${siteName.get(siteId)} - Documenten`, 'shortcut', siteId, daysAgo(now, ago));
-      telemetry.record({ department: departmentOf.get(userId), event: 'shortcut_mapped', at: daysAgo(now, ago) });
+      telemetry.record({ department: departmentOf.get(userId), teamSiteId: siteId, event: 'shortcut_mapped', at: daysAgo(now, ago) });
     }
 
     // 4. Files (+ historical migrations through the same calculator as live moves)
@@ -126,7 +126,7 @@ export function seedDatabase(db, { now = new Date() } = {}) {
         const est = estimateMigration({ size_mb: sizeMb, times_shared: shares, last_modified: lastModified }, c, new Date(at));
         q.log.run(ownerId, Number(lastInsertRowid), siteId, sizeMb,
           est.total.co2_g.low, est.total.co2_g.high, est.total.kwh.low, est.total.kwh.high, at);
-        telemetry.record({ department, event: 'migrate', at, mbMoved: sizeMb, estimate: est.total });
+        telemetry.record({ department, teamSiteId: siteId, event: 'migrate', at, mbMoved: sizeMb, estimate: est.total });
         migrations += 1;
       }
     }

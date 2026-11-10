@@ -240,14 +240,28 @@ describe('OpruimCoach API', () => {
   test('impact: aggregated, k-anonymous, personal figures only for yourself', async () => {
     const { body } = await t.call('GET', '/api/stats/impact', { token: sanne });
     assert.ok(body.personal.actions >= 1);
-    assert.equal(body.department.name, 'Wonen');
-    assert.ok(!body.department.suppressed);
+    assert.ok(!('department' in body) && !('departments' in body)); // no department named anywhere
+    assert.equal(body.my_teams.team_count, 2); // Wonen + Programma Groene ICT
+    assert.ok(!body.my_teams.suppressed);
     assert.match(body.organisation.co2_per_year.label, / – /);
     assert.ok(body.organisation.email_cloning.average_amplification > 1);
-    assert.ok(body.departments.every((d) => !('user_id' in d)));
+    assert.ok(body.teams.every((team) => !('user_id' in team)));
+    assert.deepEqual(body.teams.filter((team) => team.is_mine).map((team) => team.name).sort(), ['Programma Groene ICT', 'Wonen']);
     // The telemetry table has no column that could hold a person.
     const cols = t.db.prepare('PRAGMA table_info(telemetry_daily)').all().map((c) => c.name);
     assert.ok(!cols.some((c) => /user|owner|email|name/.test(c)));
+  });
+
+  test('impact per team: a move counts for the team the document goes to', async () => {
+    const teamSaving = async (token, name) => (await t.call('GET', '/api/stats/impact', { token })).body.teams.find((x) => x.name === name);
+    const before = await teamSaving(lotte, 'Programma Groene ICT');
+    // Lotte (Financiën) moves a file to the programme site: it counts for that team, not for her department.
+    const fileId = t.db.prepare("SELECT id FROM files WHERE owner_id = 'u07' AND filename = 'Begroting_2027_concept.xlsx' AND current_location = 'OneDrive' ORDER BY id LIMIT 1").get().id;
+    const res = await t.call('POST', '/api/files/migrate-to-sharepoint', { token: lotte, body: { fileId, siteId: 's07' } });
+    assert.equal(res.status, 200);
+    const after = await teamSaving(lotte, 'Programma Groene ICT');
+    assert.equal(after.actions, (before?.actions ?? 0) + 1);
+    assert.ok(after.co2_high_g > (before?.co2_high_g ?? 0));
   });
 
   test('public coefficient table includes the 3.6 g/GB/yr storage bound', async () => {

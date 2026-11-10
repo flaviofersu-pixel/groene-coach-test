@@ -191,7 +191,7 @@
             </div>
             <div class="segmented" role="radiogroup" aria-label="Bereik">
               <button type="button" role="radio" aria-checked="true" data-scope="organisation">Gemeente</button>
-              <button type="button" role="radio" aria-checked="false" data-scope="department">Afdeling</button>
+              <button type="button" role="radio" aria-checked="false" data-scope="my_teams">Mijn teams</button>
             </div>
           </div>
           <div class="metaphors" id="metaphors"></div>
@@ -201,20 +201,20 @@
         <section class="panel" aria-labelledby="chart-title">
           <div class="panel-head">
             <div>
-              <h3 class="panel-title" id="chart-title">Besparing per afdeling</h3>
-              <p class="panel-sub">Gram CO₂ per jaar: balk loopt van ondergrens tot bovengrens</p>
+              <h3 class="panel-title" id="chart-title">Besparing per team</h3>
+              <p class="panel-sub">Een verhuizing telt mee bij het team waar het document naartoe gaat · gram CO₂ per jaar, van ondergrens tot bovengrens</p>
             </div>
             <button type="button" class="btn btn-secondary btn-sm" id="toggle-table" aria-pressed="false">Tabel</button>
           </div>
           <p class="chart-key" id="chart-key">
-            <span class="key-swatch key-swatch--mine" aria-hidden="true"></span> Jouw afdeling
-            <span class="key-swatch" aria-hidden="true"></span> Andere afdelingen
+            <span class="key-swatch key-swatch--mine" aria-hidden="true"></span> Jouw teams
+            <span class="key-swatch" aria-hidden="true"></span> Andere teams
           </p>
-          <div id="dept-chart" class="ranges" role="list" aria-label="Besparing per afdeling"></div>
-          <div id="dept-table-wrap" class="table-wrap" hidden>
+          <div id="team-chart" class="ranges" role="list" aria-label="Besparing per team"></div>
+          <div id="team-table-wrap" class="table-wrap" hidden>
             <table class="data-table">
-              <thead><tr><th scope="col">Afdeling</th><th scope="col" class="num">Acties</th><th scope="col" class="num">g CO₂/jaar (laag)</th><th scope="col" class="num">g CO₂/jaar (hoog)</th></tr></thead>
-              <tbody id="dept-table"></tbody>
+              <thead><tr><th scope="col">Team</th><th scope="col" class="num">Verhuisd</th><th scope="col" class="num">g CO₂/jaar (laag)</th><th scope="col" class="num">g CO₂/jaar (hoog)</th></tr></thead>
+              <tbody id="team-table"></tbody>
             </table>
           </div>
           <p class="muted small" id="privacy-note"></p>
@@ -227,8 +227,8 @@
           <section class="panel prose">
             <h3 class="panel-title">Jouw privacy</h3>
             <ul>
-              <li>Afdelings- en gemeentecijfers zijn <strong>geaggregeerd</strong>: per dag, per afdeling, zonder namen of gebruikers-id's.</li>
-              <li>Een afdeling wordt pas getoond vanaf <strong>3 collega's</strong>, zodat niets naar jou herleidbaar is.</li>
+              <li>Team- en gemeentecijfers zijn <strong>opgeteld</strong>: per dag en per team, zonder namen of gebruikers-id's. Een verhuizing telt mee bij het team waar het document naartoe gaat.</li>
+              <li>Een team wordt pas getoond vanaf <strong>3 leden</strong>, zodat niets naar jou herleidbaar is.</li>
               <li>Je persoonlijke overzicht is <strong>alleen voor jou</strong> zichtbaar en wordt na 365 dagen gewist. Een "Nu niet" wordt na 7 dagen vergeten.</li>
               <li>Bij e-mail kijkt de coach alleen naar de grootte van bijlagen en het <strong>aantal</strong> ontvangers, nooit naar adressen of inhoud.</li>
             </ul>
@@ -236,7 +236,7 @@
             <ul>
               <li>De coach <strong>verwijdert nooit</strong> automatisch iets. Opruimen kan alleen na jouw akkoord, en alleen voor identieke kopieën.</li>
               <li>Kopieën gaan naar de prullenbak en zijn 93 dagen terug te zetten. Het origineel blijft bewaard.</li>
-              <li>Dossiers horen op <strong>SharePoint</strong>: daar gelden de bewaartermijnen van de afdeling, ook als jij van baan wisselt.</li>
+              <li>Dossiers horen op <strong>SharePoint</strong>: daar gelden de bewaartermijnen van je team, ook als jij van baan wisselt.</li>
             </ul>
           </section>
           <section class="panel">

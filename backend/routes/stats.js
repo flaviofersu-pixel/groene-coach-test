@@ -9,7 +9,7 @@ import { Router } from 'express';
 export function createStatsRouter(impact) {
   const router = Router();
 
-  /** GET /api/stats/impact: personal (own), department (k-anonymous) and organisation figures. */
+  /** GET /api/stats/impact: personal (own), per team (k-anonymous) and organisation figures. */
   router.get('/impact', (req, res) => res.json(impact.getImpact(req.actor)));
 
   return router;

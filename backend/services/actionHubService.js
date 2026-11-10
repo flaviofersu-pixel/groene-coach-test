@@ -89,7 +89,7 @@ export function createActionHubService({ db, graph, coefficients: c, telemetry, 
   /** The user's department site is the default (and legally correct) destination. */
   function defaultSiteId(actor) {
     const row = q.departmentSite.get(actor.department);
-    if (!row) throw new HttpError(409, 'Er is geen SharePoint-site voor jouw afdeling gevonden.');
+    if (!row) throw new HttpError(409, 'Er is geen teamsite voor je team gevonden.');
     return row.id;
   }
 
@@ -311,7 +311,8 @@ export function createActionHubService({ db, graph, coefficients: c, telemetry, 
           toLocation: 'SharePoint', siteId: moved.site.id, estimate: est.total,
         });
         q.clearSnooze.run(actor.sub, fileId);
-        telemetry.record({ department: actor.department, event: 'migrate', mbMoved: before.size_mb, estimate: est.total });
+        // The saving counts for the team the document moved TO.
+        telemetry.record({ department: actor.department, teamSiteId: moved.site.id, event: 'migrate', mbMoved: before.size_mb, estimate: est.total });
         return moved;
       });
 
@@ -363,7 +364,7 @@ export function createActionHubService({ db, graph, coefficients: c, telemetry, 
           const moved = graph.moveToSharePoint(actor, chain.keep.id, defaultSiteId(actor));
           audit(actor, { file: moved.file, action: 'migrate', fromLocation: 'OneDrive', fromFolder: moved.fromFolder,
             toLocation: 'SharePoint', siteId: moved.site.id, estimate: moveEstimate });
-          telemetry.record({ department: actor.department, event: 'migrate', mbMoved: chain.keep.size_mb, estimate: moveEstimate });
+          telemetry.record({ department: actor.department, teamSiteId: moved.site.id, event: 'migrate', mbMoved: chain.keep.size_mb, estimate: moveEstimate });
           master = { ...moved.file, site_name: moved.site.display_name };
         }
         const recycled = chain.removable.map((f) => {

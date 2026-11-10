@@ -130,10 +130,14 @@ CREATE TABLE IF NOT EXISTS migration_log (
 
 -- --- (c) Aggregated telemetry (NO user identifiers) ----------------------------------
 
--- One row per day x department x event type, incremented in place.
+-- One row per day x department x team x event type, incremented in place.
+-- team_site_id = the team (SharePoint team site) a saving counts for: the team the
+-- document was moved TO. '' = no team (duplicate clean-up, mail links): those only
+-- count in the organisation total. Still no user identifiers.
 CREATE TABLE IF NOT EXISTS telemetry_daily (
   day               TEXT    NOT NULL,             -- 'YYYY-MM-DD'
   department        TEXT    NOT NULL,
+  team_site_id      TEXT    NOT NULL DEFAULT '',
   event             TEXT    NOT NULL CHECK (event IN (
                       'migrate', 'snooze', 'recycle_duplicate', 'restore',
                       'shortcut_mapped', 'mail_share_link', 'mail_send_anyway')),
@@ -146,7 +150,7 @@ CREATE TABLE IF NOT EXISTS telemetry_daily (
   kwh_high          REAL    NOT NULL DEFAULT 0,
   dc_kwh_low        REAL    NOT NULL DEFAULT 0,   -- part of kWh that is data-centre energy (incl. cooling)
   dc_kwh_high       REAL    NOT NULL DEFAULT 0,
-  PRIMARY KEY (day, department, event)
+  PRIMARY KEY (day, department, team_site_id, event)
 );
 
 -- Monthly mail-attachment metadata per department: sizes and recipient
