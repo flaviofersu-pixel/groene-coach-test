@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  index.html — "Groene Coach" as a Microsoft Teams personal app (simulation)
+  index.html — "OpruimCoach" as a Microsoft Teams personal app (simulation)
 
   Tabs:
     Actie-hub   Feature A (shared OneDrive files) + Feature B (nudge) + duplicate chains
@@ -15,8 +15,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Groene Coach</title>
+  <title>OpruimCoach</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E%F0%9F%8C%BF%3C/text%3E%3C/svg%3E">
+  <script src="js/theme.js"></script>
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/teams.css">
   <script type="module" src="js/app.js"></script>
@@ -49,9 +50,9 @@
       <div class="tab-header">
         <div class="tab-title">
           <span class="tab-app-icon" aria-hidden="true">🌿</span>
-          <h1>Groene Coach</h1>
+          <h1>OpruimCoach</h1>
         </div>
-        <div class="tabs" role="tablist" aria-label="Groene Coach-tabbladen">
+        <div class="tabs" role="tablist" aria-label="OpruimCoach-tabbladen">
           <button class="tab" role="tab" id="tab-btn-hub" aria-controls="tab-hub" aria-selected="true" type="button">Actie-hub</button>
           <button class="tab" role="tab" id="tab-btn-explorer" aria-controls="tab-explorer" aria-selected="false" tabindex="-1" type="button">Verkenner</button>
           <button class="tab" role="tab" id="tab-btn-impact" aria-controls="tab-impact" aria-selected="false" tabindex="-1" type="button">Impact</button>
@@ -61,7 +62,7 @@
 
       <p id="consent-banner" class="banner banner--warning" role="alert" hidden>
         <strong>Beheerder moet toestemming geven.</strong>
-        De Groene Coach heeft de Graph-toestemming <code>Files.ReadWrite.All</code> nodig (admin consent). Tot die tijd kan de app je bestanden niet bekijken of verplaatsen.
+        OpruimCoach heeft de Graph-toestemming <code>Files.ReadWrite.All</code> nodig (admin consent). Tot die tijd kan de app je bestanden niet bekijken of verplaatsen.
       </p>
       <p id="load-error" class="banner banner--error" role="alert" hidden></p>
 
@@ -69,7 +70,7 @@
       <section id="tab-hub" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-hub">
         <div class="intro">
           <h2 id="hub-greeting">Welkom</h2>
-          <p class="muted">Jouw OneDrive-bestanden die veel gedeeld worden, horen eigenlijk op SharePoint. Jij beslist altijd zelf: de coach verplaatst of verwijdert nooit iets zonder jouw akkoord.</p>
+          <p class="muted">Gedeelde bestanden in je OneDrive horen vaak bij je team, op SharePoint. Jij beslist altijd zelf: de coach verplaatst of verwijdert nooit iets zonder jouw akkoord.</p>
         </div>
 
         <!-- Feature B: the nudge -->
@@ -80,8 +81,8 @@
           <section class="panel" aria-labelledby="candidates-title">
             <div class="panel-head">
               <div>
-                <h3 class="panel-title" id="candidates-title">Intensief gedeelde bestanden in je OneDrive</h3>
-                <p class="panel-sub">Gedeeld met meer dan 2 collega's · grootste besparing bovenaan</p>
+                <h3 class="panel-title" id="candidates-title">Gedeelde bestanden in je OneDrive</h3>
+                <p class="panel-sub">Grootste besparing bovenaan</p>
               </div>
             </div>
             <ul id="candidate-list" class="file-list"></ul>
@@ -194,7 +195,7 @@
         </div>
         <section class="panel">
           <h3 class="panel-title">Gebruikte CO₂-factoren</h3>
-          <p class="panel-sub">Uit de tabel <code>co2_metrics</code>. Elke factor is een bandbreedte; daarom tonen we nooit één exact getal.</p>
+          <p class="panel-sub">Uit de tabel <code>co2_metrics</code>. Elke factor is een bandbreedte; daarom tonen we nooit een exact getal.</p>
           <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th scope="col">Factor</th><th scope="col" class="num">Laag</th><th scope="col" class="num">Hoog</th><th scope="col">Eenheid</th><th scope="col">Afleiding</th></tr></thead>

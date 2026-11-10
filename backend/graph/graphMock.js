@@ -30,7 +30,7 @@ export function requireScope(actor, scope) {
     (scope === GRAPH_SCOPES.FILES_READ_ALL && actor.scopes.includes(GRAPH_SCOPES.FILES_READWRITE_ALL));
   if (!has) {
     throw new HttpError(403,
-      `Ontbrekende Graph-toestemming '${scope}'. Een beheerder moet admin consent geven voor de Groene Coach.`);
+      `Ontbrekende Graph-toestemming '${scope}'. Een beheerder moet admin consent geven voor OpruimCoach.`);
   }
 }
 

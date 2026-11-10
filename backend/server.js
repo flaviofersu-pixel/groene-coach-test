@@ -7,16 +7,18 @@
  */
 
 import { config } from './config.js';
-import { openDatabase, isEmpty } from './db/database.js';
+import { openDatabase, isEmpty, isOutdated } from './db/database.js';
 import { seedDatabase } from './db/seed.js';
 import { purgeExpiredPersonalData } from './services/retention.js';
 import { createApp } from './app.js';
 
 const db = openDatabase(config.dbPath);
 
-if (isEmpty(db)) {
+// First start, or the demo data model changed: (re)build the simulated tenant.
+if (isEmpty(db) || isOutdated(db)) {
+  const reason = isEmpty(db) ? 'Empty database detected' : 'Demo data model changed';
   const counts = seedDatabase(db);
-  console.log(`[api] Empty database detected, seeded ${counts.files} files for ${counts.users} users.`);
+  console.log(`[api] ${reason}, seeded ${counts.files} files for ${counts.users} users.`);
 }
 
 // Storage limitation: purge expired personal data now and every hour.

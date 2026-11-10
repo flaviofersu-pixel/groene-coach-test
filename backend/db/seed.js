@@ -12,7 +12,7 @@
 import crypto from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import { config } from '../config.js';
-import { openDatabase, resetSchema, inTransaction } from './database.js';
+import { openDatabase, resetSchema, inTransaction, markDemoDataVersion } from './database.js';
 import {
   CO2_METRICS, SITES, USERS, SITE_OWNERS, PROGRAMME_MEMBERS, EXISTING_SHORTCUTS,
   ONEDRIVE_FOLDERS, MOVED_FOLDER, FILES, MAIL_ATTACHMENTS, PAST_MAIL_DECISIONS,
@@ -47,7 +47,7 @@ const emailFor = (name) => {
 export function seedDatabase(db, { now = new Date() } = {}) {
   resetSchema(db);
 
-  return inTransaction(db, () => {
+  const counts = inTransaction(db, () => {
     const q = {
       metric: db.prepare(`INSERT INTO co2_metrics (key, label, value_low, value_high, unit, category, derivation, source)
                           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`),
@@ -148,6 +148,8 @@ export function seedDatabase(db, { now = new Date() } = {}) {
 
     return { users: USERS.length, sites: SITES.length, files: FILES.length, migrations };
   });
+  markDemoDataVersion(db);
+  return counts;
 }
 
 // --- CLI entry point (only when executed directly: `node backend/db/seed.js`) -------------------

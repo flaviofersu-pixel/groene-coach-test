@@ -28,7 +28,7 @@ export function createExplorer(ctx) {
     if (node.type === 'file') {
       const row = append(el('div', `tree-row is-file${node.tag ? ` is-tagged-${node.tag}` : ''}`),
         fileIcon(node.name), el('span', 'tree-name', node.name));
-      row.title = `${formatSize(node.size_mb)} · gedeeld met ${node.shared}`;
+      row.title = `${formatSize(node.size_mb)}${node.shared > 0 ? ' · gedeeld bestand' : ''}`;
       if (node.tag) row.append(el('span', TAG_LABELS[node.tag][0], TAG_LABELS[node.tag][1]));
       return append(li, row);
     }

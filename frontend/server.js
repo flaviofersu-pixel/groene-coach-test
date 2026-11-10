@@ -1,6 +1,6 @@
 /**
  * @file frontend/server.js
- * @description Serves the web front-ends (the Groene Coach Teams app and the
+ * @description Serves the web front-ends (the OpruimCoach Teams app and the
  * Outlook Smart Alert simulation) and forwards every /api/* request to the backend.
  *
  * Why a proxy instead of calling the API directly from the browser?
@@ -72,7 +72,7 @@ app.use('/api', proxyToApi);
 app.use(express.static(PUBLIC_DIR, { dotfiles: 'ignore', index: 'index.html' }));
 
 app.listen(PORT, HOST, () => {
-  console.log(`[web] Teams app (Groene Coach): http://${HOST}:${PORT}/`);
+  console.log(`[web] Teams app (OpruimCoach): http://${HOST}:${PORT}/`);
   console.log(`[web] Outlook Smart Alert:      http://${HOST}:${PORT}/outlook.html`);
   console.log(`[web] Proxying /api -> http://${API_TARGET_HOST}:${API_PORT}`);
 });

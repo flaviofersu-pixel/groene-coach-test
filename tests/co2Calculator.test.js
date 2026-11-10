@@ -8,6 +8,7 @@ import assert from 'node:assert/strict';
 import {
   coefficientsFromRows, storageGramsPerGbYear, networkGramsPerGb, estimateMigration,
   estimateDuplicateRemoval, estimateAttachmentCloning, cumulativeCloningWaste, equivalents, formatBand, band,
+  everydayEquivalent, formatEquivalent,
 } from '../backend/services/co2Calculator.js';
 import { CO2_METRICS } from '../backend/db/seedData.js';
 
@@ -112,6 +113,26 @@ test('formatBand returns honest, outward-rounded ranges instead of exact numbers
   assert.equal(formatBand(band(4, 4)).label, 'ca. 4 gram CO₂');
   assert.equal(formatBand(band(0.3, 0.3)).low, 0.3); // float-safe rounding
   assert.equal(formatBand(band(0.09, 2.1), 'kwh').label, '0,09 – 3 kWh');
+});
+
+test('everyday example: phone charges for small savings, kettle litres once at least one is certain', () => {
+  // 0.1 kWh: not certainly one kettle litre (0.104 – 0.124 kWh), so phone charges.
+  const small = everydayEquivalent(band(0.05, 0.1), c);
+  assert.equal(small.kind, 'phone');
+  close(small.count.low, 0.05 / c.phone_charge_kwh.high); // least energy ÷ most per charge
+  close(small.count.high, 0.1 / c.phone_charge_kwh.low);  // most energy ÷ least per charge
+
+  const big = everydayEquivalent(band(0.5, 1), c);
+  assert.equal(big.kind, 'kettle');
+  assert.ok(big.count.low >= 1);
+});
+
+test('everyday example labels stay honest ranges in plain Dutch', () => {
+  assert.equal(formatEquivalent({ kind: 'phone', count: band(1.2, 3.4) }).label, '1 – 4 keer je telefoon opladen');
+  assert.equal(formatEquivalent({ kind: 'phone', count: band(0.05, 0.6) }).label, 'minder dan 1 keer je telefoon opladen');
+  assert.equal(formatEquivalent({ kind: 'phone', count: band(0, 2.2) }).label, 'tot 3 keer je telefoon opladen');
+  assert.equal(formatEquivalent({ kind: 'kettle', count: band(2, 5) }).label, '2 – 5 keer 1 liter water koken');
+  assert.equal(formatEquivalent({ kind: 'phone', count: band(0, 0) }).label, 'geen meetbare besparing');
 });
 
 test('missing coefficients and invalid input fail loudly', () => {

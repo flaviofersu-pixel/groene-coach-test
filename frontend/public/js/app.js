@@ -13,6 +13,7 @@ import { createActionHub } from './actionHub.js';
 import { createExplorer } from './explorer.js';
 import { createImpact } from './impact.js';
 import { createAbout } from './about.js';
+import { loadCo2Factors } from './co2.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -95,6 +96,7 @@ async function onSignedIn() {
 
 async function init() {
   setupTabs();
+  await loadCo2Factors(); // numbers for the CO2 info popovers
   // Another window changed something: refresh (ignored until signed in).
   updates?.addEventListener('message', () => { if (ctx.me) ctx.refreshAll({ broadcast: false }).catch(() => {}); });
   try {

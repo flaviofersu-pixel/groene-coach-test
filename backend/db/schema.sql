@@ -1,7 +1,7 @@
 -- =============================================================================
 -- schema.sql — Microsoft 365 tenant simulation ("Graph mock database")
 --
--- Models the parts of Microsoft 365 that the Groene Coach needs: users,
+-- Models the parts of Microsoft 365 that OpruimCoach needs: users,
 -- department SharePoint sites, the personal OneDrive tree, drive items and
 -- the CO2 coefficients. All statements are idempotent (IF NOT EXISTS).
 --
@@ -95,7 +95,7 @@ CREATE TABLE IF NOT EXISTS files (
 CREATE TRIGGER IF NOT EXISTS trg_files_never_delete
 BEFORE DELETE ON files
 BEGIN
-  SELECT RAISE(ABORT, 'Archiefwet: drive items are never hard-deleted by the Groene Coach');
+  SELECT RAISE(ABORT, 'Archiefwet: drive items are never hard-deleted by OpruimCoach');
 END;
 
 -- --- (b) Functional state ---------------------------------------------------------

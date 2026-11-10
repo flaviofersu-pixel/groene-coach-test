@@ -30,6 +30,7 @@ export const REQUIRED_COEFFICIENTS = Object.freeze([
   'grid_emission_factor', 'storage_power_w_per_tb', 'pue', 'storage_replication_factor',
   'network_energy_kwh_per_gb', 'edit_cycles_active', 'edit_cycles_dormant', 'active_window_days',
   'delta_sync_reduction', 'backup_dedup_reduction', 'mail_copies_per_recipient', 'canal_lamp_power_w',
+  'kettle_litre_kwh', 'phone_charge_kwh',
 ]);
 
 // --- Band arithmetic -----------------------------------------------------------------
@@ -230,6 +231,50 @@ export function equivalents({ kwh, dc_kwh }, c) {
     lamp_hours: band((kwh.low * WH_PER_KWH) / c.canal_lamp_power_w.high, (kwh.high * WH_PER_KWH) / c.canal_lamp_power_w.low),
     cooling_kwh: mulBand(dc_kwh, (pue - 1) / pue),
   };
+}
+
+/**
+ * One small, recognisable everyday example for an amount of energy.
+ *
+ * We compare ENERGY (kWh), not CO2: the kettle and the phone use the same
+ * electricity grid, so the comparison holds whatever emission factor is used.
+ *
+ * Choice of example: a full litre in the kettle when the saving is at least
+ * one kettle for sure (lower bound >= 1); otherwise a phone charge, which is
+ * about 6× smaller and so still gives a readable number for tiny savings.
+ *
+ * Bands stay honest: low = least energy ÷ most energy per example, and
+ * high = most energy ÷ least energy per example.
+ *
+ * @param {Band} kwh
+ * @returns {{ kind: 'kettle'|'phone', count: Band }}
+ */
+export function everydayEquivalent(kwh, c) {
+  const countFor = (factor) => band(kwh.low / factor.high, kwh.high / factor.low);
+  const kettles = countFor(c.kettle_litre_kwh);
+  if (kettles.low >= 1) return { kind: 'kettle', count: kettles };
+  return { kind: 'phone', count: countFor(c.phone_charge_kwh) };
+}
+
+/** Dutch wording per example ("keer ..."). */
+const EQUIVALENT_TEXT = {
+  kettle: '1 liter water koken',
+  phone: 'je telefoon opladen',
+};
+
+/**
+ * Formats an everyday example, e.g. "2 – 5 keer je telefoon opladen".
+ * @param {{ kind: 'kettle'|'phone', count: Band }} eq
+ * @returns {{ kind: string, low: number, high: number, label: string }}
+ */
+export function formatEquivalent(eq) {
+  const text = EQUIVALENT_TEXT[eq.kind];
+  const { low, high, label } = formatBand(eq.count, 'count');
+  const result = (words) => ({ kind: eq.kind, low, high, label: words });
+  if (high === 0) return result('geen meetbare besparing');
+  if (high < 1) return result(`minder dan 1 keer ${text}`);
+  if (low === 0) return result(`tot ${nl(high)} keer ${text}`); // "0 – 3 keer" reads oddly
+  return result(`${label} keer ${text}`);
 }
 
 // --- Presentation: bandwidth ("bandbreedte") ---------------------------------------------------

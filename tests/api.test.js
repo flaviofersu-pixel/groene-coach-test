@@ -37,7 +37,7 @@ async function startApp({ auth = config.auth } = {}) {
   return { db, clock, server, call, signIn };
 }
 
-describe('Groene Coach API', () => {
+describe('OpruimCoach API', () => {
   let t;
   let sanne; // u01 · Wonen
   let lotte; // u07 · Financiën
@@ -74,6 +74,7 @@ describe('Groene Coach API', () => {
       assert.equal(f.current_location, 'OneDrive');
       assert.ok(f.times_shared > 2);
       assert.match(f.estimate.co2_per_year.label, /gram CO₂|kg CO₂/);
+      assert.match(f.estimate.co2_per_year.equivalent.label, /telefoon|water|besparing/); // everyday example
       assert.equal(f.estimate.storage_freed_mb, 0); // single move: no storage saving
       assert.equal(f.estimate.breakdown.storage.label, '0 gram CO₂');
     }

@@ -10,6 +10,7 @@
 import { api } from './api.js';
 import { el, append } from './dom.js';
 import { formatSize, formatNumber, plural } from './format.js';
+import { co2Amount, co2Text, co2InfoButton } from './co2.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -19,22 +20,23 @@ export function createImpact(ctx) {
   const tooltip = $('tooltip');
 
   function kpi(label, value, sub) {
-    return append(el('article', 'kpi'), el('h3', 'kpi-label', label), el('p', 'kpi-value', value), el('p', 'kpi-sub', sub));
+    const valueNode = typeof value === 'string' ? el('p', 'kpi-value', value) : append(el('div', 'kpi-value'), value);
+    return append(el('article', 'kpi'), el('h3', 'kpi-label', label), valueNode, el('p', 'kpi-sub', sub));
   }
 
   function renderKpis({ personal, department, organisation }) {
     const mail = organisation.email_cloning;
     $('impact-kpis').replaceChildren(
-      kpi('Jouw bijdrage (alleen voor jou)', personal.co2_per_year.label,
+      kpi('Jouw bijdrage (alleen voor jou)', co2Amount(personal.co2_per_year, { suffix: '', stacked: true }),
         `per jaar · ${plural(personal.actions, 'actie', 'acties')} · ${formatSize(personal.mb_moved)} verhuisd · ${formatSize(personal.storage_freed_mb)} opgeruimd`),
       department.suppressed
         ? kpi(`Afdeling ${department.name}`, 'Niet getoond', department.reason)
-        : kpi(`Afdeling ${department.name}`, department.co2_per_year.label,
+        : kpi(`Afdeling ${department.name}`, co2Amount(department.co2_per_year, { suffix: '', stacked: true }),
           `per jaar · ${department.members} collega's · ${plural(department.migrations, 'verhuizing', 'verhuizingen')}`),
-      kpi('Hele gemeente', organisation.co2_per_year.label,
+      kpi('Hele gemeente', co2Amount(organisation.co2_per_year, { suffix: '', stacked: true }),
         `per jaar · ${organisation.migrations} verhuizingen · ${organisation.mail_links} links i.p.v. bijlagen`),
       kpi('Bijlagen-klonen (gemeente)', formatSize(mail.duplicate_mb),
-        `${mail.attachments} bijlagen gemiddeld ${formatNumber(mail.average_amplification, 1)}× opgeslagen · ${mail.co2_per_year.label} per jaar`));
+        `${mail.attachments} bijlagen gemiddeld ${formatNumber(mail.average_amplification, 1)}× opgeslagen · ${co2Text(mail.co2_per_year)}`));
   }
 
   function metaphor(iconText, value, text) {
@@ -54,11 +56,11 @@ export function createImpact(ctx) {
     const mail = scopeData.email_cloning;
     container.replaceChildren(
       metaphor('🏮', `${eq.lamp_hours.label} lantaarnuren`,
-        'Zoveel grachtenlantaarns (LED, 40 W) kun je één uur laten branden op de bespaarde stroom per jaar.'),
+        'Zoveel grachtenlantaarns (LED, 40 W) kun je een uur laten branden op de bespaarde stroom per jaar.'),
       metaphor('❄️', eq.cooling_kwh.label,
         'Daarvan is koeling en overhead in datacenters (PUE 1,185). Netwerkverkeer telt hier niet mee.'),
       metaphor('📧', `${formatNumber(mail.average_amplification, 1)}× opslag`,
-        `Zo vaak wordt een gemiddelde bijlage opgeslagen: ${formatSize(mail.duplicate_mb)} aan kopieën in mailboxen (${mail.co2_per_year.label} per jaar). Met een link is dat één bestand.`),
+        `Zo vaak wordt een gemiddelde bijlage opgeslagen: ${formatSize(mail.duplicate_mb)} aan kopieën in mailboxen (${co2Text(mail.co2_per_year)}). Met een link is dat een bestand.`),
       metaphor('🗂️', `${formatSize(scopeData.storage_freed_mb)} opgeruimd`,
         `Alleen identieke kopieën opruimen bespaart opslag. Daarnaast ${formatSize(scopeData.storage_avoided_mb)} aan mailbijlagen voorkomen met links.`));
   }
@@ -66,7 +68,7 @@ export function createImpact(ctx) {
   function showTooltip(row, d, x, y) {
     tooltip.replaceChildren(
       el('strong', '', d.name),
-      el('div', '', `${d.co2_per_year.label} per jaar`),
+      el('div', '', co2Text(d.co2_per_year)),
       el('div', '', `${plural(d.actions, 'actie', 'acties')} (verhuizingen, opgeruimde kopieën, links)`));
     tooltip.hidden = false;
     const rect = row.getBoundingClientRect();
@@ -86,11 +88,12 @@ export function createImpact(ctx) {
       const row = el('div', `range-row${d.is_mine ? ' is-mine' : ''}`);
       row.setAttribute('role', 'listitem');
       row.tabIndex = 0;
-      row.setAttribute('aria-label', `${d.name}: ${d.co2_per_year.label} per jaar`);
+      row.setAttribute('aria-label', `${d.name}: ${co2Text(d.co2_per_year)}`);
       const bar = el('div', 'range-bar');
       bar.style.setProperty('--lo', String(d.co2_low_g / max));
       bar.style.setProperty('--hi', String(d.co2_high_g / max));
-      append(row, el('span', 'range-label', d.name), append(el('div', 'range-track'), bar), el('span', 'range-value', d.co2_per_year.label));
+      append(row, el('span', 'range-label', d.name), append(el('div', 'range-track'), bar),
+        append(el('span', 'range-value'), co2Amount(d.co2_per_year, { suffix: '', info: false, stacked: true })));
       row.addEventListener('pointermove', (e) => showTooltip(row, d, e.clientX, e.clientY));
       row.addEventListener('pointerleave', hideTooltip);
       row.addEventListener('focus', () => showTooltip(row, d));
@@ -103,6 +106,9 @@ export function createImpact(ctx) {
       el('td', 'num', formatNumber(d.co2_low_g, 2)),
       el('td', 'num', formatNumber(d.co2_high_g, 2)))));
   }
+
+  // One explanation button for the whole chart; every row shows its own example label.
+  $('chart-title').after(co2InfoButton());
 
   // One-time wiring of the scope switch and the table toggle.
   document.querySelectorAll('[data-scope]').forEach((btn) => btn.addEventListener('click', () => {

@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  outlook.html — Simulated Outlook on the web with a Groene Coach Smart Alert
+  outlook.html — Simulated Outlook on the web with an OpruimCoach Smart Alert
 
   Production counterpart: an Outlook event-based add-in on `OnMessageSend`
   in "PromptUser" mode. When an attachment would be cloned into many
@@ -13,6 +13,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Outlook Smart Alert</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E%F0%9F%93%A7%3C/text%3E%3C/svg%3E">
+  <script src="js/theme.js"></script>
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/outlook.css">
   <script type="module" src="js/outlook.js"></script>
@@ -25,7 +26,7 @@
       <label class="owa-sim-label"><span class="owa-sim-text">Ingelogd als</span>
         <select id="user-select" class="sim-select" aria-label="Gesimuleerde gebruiker"></select>
       </label>
-      <a class="owa-link" href="index.html">← Groene Coach in Teams</a>
+      <a class="owa-link" href="index.html">← OpruimCoach in Teams</a>
     </div>
   </header>
 
@@ -87,7 +88,7 @@ Groet,</textarea>
     <!-- Explanation: the Rick van Kersbergen rule, visualised live -->
     <aside class="owa-side" aria-labelledby="rule-title">
       <h2 id="rule-title" class="side-title">Waarom deze melding?</h2>
-      <p class="muted">Een bijlage wordt in de mailbox van <strong>elke ontvanger</strong> apart opgeslagen. 1 bijlage aan 20 mensen = 20× opslag. Een link wijst naar één bestand.</p>
+      <p class="muted">Een bijlage wordt in de mailbox van <strong>elke ontvanger</strong> apart opgeslagen. 1 bijlage aan 20 mensen = 20× opslag. Een link wijst naar een bestand.</p>
       <div class="clones" id="clones" aria-hidden="true"></div>
       <p id="clone-caption" class="small muted"></p>
       <p class="small muted">De coach kijkt alleen naar de bestandsgrootte en het aantal ontvangers. Adressen, onderwerp en tekst blijven in Outlook.</p>
@@ -99,7 +100,7 @@ Groet,</textarea>
     <div class="sa-head">
       <span class="sa-icon" aria-hidden="true">🌿</span>
       <div>
-        <p class="sa-addin">Groene Coach</p>
+        <p class="sa-addin">OpruimCoach</p>
         <h2 id="sa-title" class="sa-title">Samen groener mailen?</h2>
       </div>
     </div>

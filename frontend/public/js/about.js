@@ -13,7 +13,7 @@ const $ = (id) => document.getElementById(id);
 /** Why each delegated Graph scope is needed. */
 const SCOPES = [
   ['User.Read', 'Je naam en afdeling, om de juiste SharePoint-site voor te stellen.'],
-  ['Files.Read.All', 'Je OneDrive bekijken: hoe vaak bestanden gedeeld zijn en welke kopieën identiek zijn.'],
+  ['Files.Read.All', 'Je OneDrive bekijken: of bestanden gedeeld zijn en welke kopieën identiek zijn.'],
   ['Files.ReadWrite.All', 'Bestanden verplaatsen naar SharePoint, snelkoppelingen toevoegen en kopieën naar de prullenbak zetten, alleen na jouw klik. Vereist admin consent.'],
   ['Sites.Read.All', 'De SharePoint-sites tonen waarvan je lid bent.'],
 ];

@@ -17,7 +17,7 @@
 import { config } from '../config.js';
 import { HttpError } from '../errors.js';
 import { estimateAttachmentCloning, formatBand } from './co2Calculator.js';
-import { presentEstimate, round } from './present.js';
+import { presentEstimate, presentCo2, round } from './present.js';
 
 const formatMb = (mb) => (mb >= 1024 ? `${round(mb / 1024, 1)} GB` : `${round(mb, 1)} MB`).replace('.', ',');
 
@@ -42,9 +42,9 @@ export function createOutlookService({ graph, coefficients: c, telemetry }) {
     /** Called on "Verzenden": decides whether the Smart Alert dialog appears. */
     evaluateSend(actor, input) {
       const { files, sizeMb, est, alert } = analyse(actor, input);
-      const annual = presentEstimate(est.annual);
+      const annual = presentEstimate(est.annual, c);
       // One-off (not yearly), so it gets its own shape instead of `co2_per_year`.
-      const transfer = { co2: formatBand(est.transfer.co2_g, 'co2'), kwh: formatBand(est.transfer.kwh, 'kwh') };
+      const transfer = { co2: presentCo2(est.transfer.co2_g, est.transfer.kwh, c), kwh: formatBand(est.transfer.kwh, 'kwh') };
       const names = files.length === 1 ? `"${files[0].filename}"` : `${files.length} bijlagen`;
 
       return {
@@ -60,7 +60,7 @@ export function createOutlookService({ graph, coefficients: c, telemetry }) {
         message: alert
           ? `Je verstuurt ${names} (${formatMb(sizeMb)}) als bijlage naar ${input.recipientCount} mensen. ` +
             `Elke ontvanger krijgt een eigen kopie: samen ${formatMb(est.duplicate_mb)} in mailboxen (${est.amplification}× opslag). ` +
-            `Deel je liever een link? Dat scheelt ${annual.co2_per_year.label} per jaar en iedereen werkt in dezelfde versie.`
+            `Deel je liever een link? Dat scheelt ${annual.co2_per_year.label} per jaar (≈ ${annual.co2_per_year.equivalent.label}) en iedereen werkt in dezelfde versie.`
           : null,
         options: alert
           ? [

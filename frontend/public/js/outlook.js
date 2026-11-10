@@ -1,6 +1,6 @@
 /**
  * @file outlook.js
- * @description Simulated Outlook compose window with a Groene Coach Smart Alert.
+ * @description Simulated Outlook compose window with an OpruimCoach Smart Alert.
  *
  * Flow (mirrors an OnMessageSend event-based add-in in PromptUser mode):
  *   1. "Verzenden" -> POST /api/outlook/evaluate-send (sizes + recipient COUNT only)
@@ -54,7 +54,7 @@ function renderResult(decision, resolved) {
   } else {
     result.replaceChildren(
       el('p', 'result-title', 'Verzonden met bijlage'),
-      el('p', 'muted', 'Helemaal goed: jij bepaalt hoe je mailt. De coach onthoudt geen persoonlijke keuze, alleen een geanonimiseerde teller per afdeling.'));
+      el('p', 'muted', 'Helemaal goed: jij bepaalt hoe je mailt. De coach onthoudt geen persoonlijke keuze, alleen een anonieme teller, zonder namen.'));
   }
   result.hidden = false;
 }
@@ -63,7 +63,7 @@ function renderResult(decision, resolved) {
 function askSmartAlert(evaluation) {
   const dialog = $('smart-alert');
   $('sa-message').textContent = evaluation.message;
-  $('sa-transfer').textContent = `Eenmalig versturen van alle kopieën kost daarnaast ${evaluation.one_off_transfer.co2.label} aan netwerkenergie.`;
+  $('sa-transfer').textContent = `Eenmalig versturen van alle kopieën kost daarnaast ${evaluation.one_off_transfer.co2.label} aan netwerkenergie (≈ ${evaluation.one_off_transfer.co2.equivalent.label}).`;
   return new Promise((resolve) => {
     const finish = (id) => { dialog.close(); resolve(id); };
     $('sa-actions').replaceChildren(...evaluation.options.map((opt, i) =>
@@ -79,7 +79,7 @@ async function onSend(e) {
   if (!file) { toast('Kies een bijlage om de Smart Alert te testen.'); return; }
   const n = recipientCount();
   $('send').disabled = true;
-  $('send-status').textContent = 'Groene Coach controleert het bericht…';
+  $('send-status').textContent = 'OpruimCoach controleert het bericht…';
   $('result').hidden = true;
 
   try {

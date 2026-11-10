@@ -76,7 +76,7 @@ export function createImpactService({ db, coefficients: c }) {
     const clamp = (b) => band(Math.max(0, b.low), Math.max(0, b.high));
     const eq = equivalents({ kwh: clamp(acc.kwh), dc_kwh: clamp(acc.dc_kwh) }, c);
     return {
-      ...presentEstimate({ co2_g: clamp(acc.co2), kwh: clamp(acc.kwh) }),
+      ...presentEstimate({ co2_g: clamp(acc.co2), kwh: clamp(acc.kwh) }, c),
       migrations: acc.migrations,
       duplicates_recycled: acc.duplicates_recycled - acc.restores,
       mail_links: acc.mail_links,
@@ -129,7 +129,7 @@ export function createImpactService({ db, coefficients: c }) {
           recipients_total: w.recipients_total,
           average_amplification: round(w.average_amplification, 1),
           duplicate_mb: round(w.duplicate_mb, 1),
-          ...presentEstimate(w.annual),
+          ...presentEstimate(w.annual, c),
         };
       };
 
@@ -150,7 +150,7 @@ export function createImpactService({ db, coefficients: c }) {
       return {
         period: 'per jaar',
         personal: {
-          ...presentEstimate({ co2_g: clamp(p.co2), kwh: clamp(p.kwh) }),
+          ...presentEstimate({ co2_g: clamp(p.co2), kwh: clamp(p.kwh) }, c),
           actions: p.actions,
           mb_moved: round(p.mb_moved, 1),
           storage_freed_mb: round(Math.max(0, p.storage_freed_mb), 1),

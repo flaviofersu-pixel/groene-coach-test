@@ -2,8 +2,9 @@
  * base.css — shared design tokens and primitives for both UIs.
  *
  * Colours are defined once as custom properties ("tokens") and redefined for
- * dark mode, so components never hard-code a hex value. Dark mode follows the
- * OS setting unless a page forces a theme with <html data-theme="light|dark">.
+ * dark mode, so components never hard-code a hex value. LIGHT IS THE DEFAULT:
+ * the OS dark setting is deliberately ignored. Dark colours are only used when
+ * js/theme.js sets <html data-theme="dark"> (the user's Teams theme is dark).
  * Data-visualisation colours come from a CVD-validated categorical palette.
  */
 
@@ -40,31 +41,6 @@
   --radius-lg: 12px;
   --shadow: 0 2px 4px rgb(0 0 0 / 0.06), 0 8px 24px rgb(0 0 0 / 0.10);
   --focus: 0 0 0 2px var(--surface), 0 0 0 4px var(--brand);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --bg: #1f1f1f;
-    --surface: #292929;
-    --surface-2: #2e2e2e;
-    --border: #3d3d3d;
-    --border-strong: #575757;
-    --text: #f0efec;
-    --text-2: #c3c2b7;
-    --text-muted: #a3a29a;
-    --brand: #8f94f7;
-    --brand-strong: #4f52b2;
-    --brand-hover: #5b5fc7;
-    --brand-soft: #2f2f4a;
-    --success-text: #54c454;
-    --success-soft: #1c331c;
-    --danger-soft: #3a2222;
-    --series-1: #3987e5;
-    --series-muted: #55554f;
-    --grid: #383835;
-    --shadow: 0 2px 4px rgb(0 0 0 / 0.3), 0 8px 24px rgb(0 0 0 / 0.45);
-  }
 }
 
 :root[data-theme="dark"] {
@@ -152,3 +128,38 @@ a { color: var(--brand); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* --- Info button ("i") + popover (see infoButton() in js/dom.js) --------- */
+.info { display: inline-flex; vertical-align: middle; margin-left: 6px; }
+.info-btn {
+  display: inline-grid; place-items: center; flex: none;
+  width: 18px; height: 18px; padding: 0;
+  border: 1px solid var(--border-strong); border-radius: 50%;
+  background: var(--surface); color: var(--text-2);
+  font: italic 700 11px/1 Georgia, "Times New Roman", serif; cursor: pointer;
+}
+.info-btn:hover { color: var(--brand); border-color: var(--brand); }
+.info-pop {
+  /* Popovers are centred by the browser; we place them next to the button instead (JS). */
+  position: fixed; inset: auto; margin: 0;
+  width: min(340px, calc(100vw - 16px)); padding: 12px 14px;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--surface); color: var(--text); box-shadow: var(--shadow);
+  font-size: 13px; font-weight: 400; font-style: normal; line-height: 1.45; text-align: left; white-space: normal;
+}
+.info-pop p + p, .info-pop p + div, .info-pop div + p { margin-top: 6px; }
+.info-title { font-weight: 700; }
+.info-source { color: var(--text-muted); font-size: 12px; }
+
+/* --- CO2 amount with its everyday example (see js/co2.js) ---------------- */
+.co2 { display: inline; }
+/* The everyday example is a green label with an icon: visible at a glance, not hidden in the "i". */
+.co2-eq {
+  display: inline-flex; align-items: center; gap: 5px; vertical-align: middle;
+  margin-left: 8px; padding: 2px 10px 2px 6px; border-radius: 999px;
+  background: var(--success-soft); color: var(--success-text);
+  font-size: 13px; font-weight: 600; line-height: 1.4; white-space: normal;
+}
+.co2-eq-icon { font-size: 15px; line-height: 1; }
+.co2--stacked { display: inline-flex; flex-direction: column; align-items: inherit; gap: 4px; }
+.co2--stacked .co2-eq { margin-left: 0; font-size: 12px; }

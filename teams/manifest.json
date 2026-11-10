@@ -1,0 +1,39 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/teams/v1.17/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.17",
+  "version": "0.2.0",
+  "id": "00000000-0000-0000-0000-000000000000",
+  "developer": {
+    "name": "Gemeente Amsterdam (PoC)",
+    "websiteUrl": "https://opruimcoach.example",
+    "privacyUrl": "https://opruimcoach.example/privacy",
+    "termsOfUseUrl": "https://opruimcoach.example/voorwaarden"
+  },
+  "name": {
+    "short": "OpruimCoach",
+    "full": "OpruimCoach: je bestanden op de juiste plek"
+  },
+  "description": {
+    "short": "Helpt je OneDrive op te ruimen en bestanden naar de teamsite te verhuizen.",
+    "full": "OpruimCoach bekijkt alleen de gegevens over je bestanden (naam, grootte, datum, map), nooit de inhoud. Je ziet welke documenten bij je team horen, welke kopieën dubbel zijn en wat opruimen scheelt aan energie en CO2. Jij beslist altijd zelf."
+  },
+  "icons": {
+    "color": "color.png",
+    "outline": "outline.png"
+  },
+  "accentColor": "#FFFFFF",
+  "staticTabs": [
+    {
+      "entityId": "opruimcoach",
+      "name": "OpruimCoach",
+      "contentUrl": "https://opruimcoach.example/?theme={theme}",
+      "scopes": ["personal"]
+    }
+  ],
+  "permissions": ["identity"],
+  "validDomains": ["opruimcoach.example"],
+  "webApplicationInfo": {
+    "id": "00000000-0000-0000-0000-000000000000",
+    "resource": "api://opruimcoach.example/00000000-0000-0000-0000-000000000000"
+  }
+}

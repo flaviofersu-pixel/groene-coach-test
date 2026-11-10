@@ -50,6 +50,47 @@ export function fileIcon(filename) {
   return el('span', `file-ic file-ic--${kind}`, label);
 }
 
+// --- Info button ("i") with a popover ---------------------------------------------------------
+
+let infoCount = 0;
+
+/** Puts an open popover just below its button, kept inside the window. */
+function placeBelow(trigger, pop) {
+  const r = trigger.getBoundingClientRect();
+  const left = Math.min(Math.max(8, r.left - 12), window.innerWidth - pop.offsetWidth - 8);
+  const below = r.bottom + 6;
+  const top = below + pop.offsetHeight > window.innerHeight - 8 ? Math.max(8, r.top - pop.offsetHeight - 6) : below;
+  pop.style.left = `${left}px`;
+  pop.style.top = `${top}px`;
+}
+
+/**
+ * Small "i" button that opens an explanation. Uses the browser's native
+ * `popover` attribute: keyboard accessible, closes on Esc or a click outside,
+ * no extra JavaScript library.
+ * TODO(teams): use Fluent UI <InfoLabel> (or <Popover>) in the Teams version.
+ * @param {string} label accessible name, e.g. "Uitleg over de berekening"
+ * @param {() => Node[]} buildContent returns the popover content; called each
+ *   time it opens, so it always uses the latest data
+ */
+export function infoButton(label, buildContent) {
+  infoCount += 1;
+  const id = `info-pop-${infoCount}`;
+  const trigger = button('i', 'info-btn');
+  trigger.setAttribute('aria-label', label);
+  trigger.setAttribute('popovertarget', id);
+
+  const pop = el('div', 'info-pop');
+  pop.id = id;
+  pop.setAttribute('popover', 'auto');
+  pop.setAttribute('role', 'dialog');
+  pop.setAttribute('aria-label', label);
+  pop.addEventListener('beforetoggle', (e) => { if (e.newState === 'open') pop.replaceChildren(...buildContent()); });
+  pop.addEventListener('toggle', (e) => { if (e.newState === 'open') placeBelow(trigger, pop); });
+
+  return append(el('span', 'info'), trigger, pop);
+}
+
 let toastTimer;
 /**
  * Shows a status message, optionally with one action button (e.g. "Ongedaan maken").

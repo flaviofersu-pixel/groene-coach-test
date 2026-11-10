@@ -73,7 +73,7 @@ Dit interview duurt 30–40 minuten en toetst of de user stories van de Groene C
 
 ## Deel F — Reactie op de Groene Coach (8 min)
 
-Laat nu de schermafbeeldingen uit de PoC zien. Leg in één zin uit: 'Dit is een app in Teams die tips geeft, en een melding in Outlook bij grote bijlagen. Jij beslist altijd zelf.'
+Laat nu de schermafbeeldingen uit de PoC zien. Leg in een zin uit: 'Dit is een app in Teams die tips geeft, en een melding in Outlook bij grote bijlagen. Jij beslist altijd zelf.'
 
 | # | Vraag | Doorvragen | Notities |
 | --- | --- | --- | --- |

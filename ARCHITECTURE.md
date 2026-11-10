@@ -1,4 +1,4 @@
-# Architecture: Groene Coach (v2 "From Insight to Action")
+# Architecture: OpruimCoach (v2 "From Insight to Action")
 
 *Data Lifecycle & Carbon Reduction Tool: proof of concept for a simulated Gemeente Amsterdam Microsoft 365 tenant.*
 
@@ -26,7 +26,7 @@
 ```
  Civil servant's locked laptop (nothing installed)
  ┌───────────────────────────────────────────────┐
- │ Microsoft Teams ── personal app "Groene Coach" │──┐
+ │ Microsoft Teams ── personal app "OpruimCoach"  │──┐
  │ Outlook ── OnMessageSend add-in (Smart Alert)  │──┤  HTTPS, Bearer token (Teams/Entra SSO)
  └───────────────────────────────────────────────┘  │
                                                     ▼
@@ -145,7 +145,7 @@ Teams client ──getAuthToken()──► SSO token (aud = api://groenecoach, s
 
 **The problem.** Records (*archiefbescheiden*) that live in a personal OneDrive are outside the department's retention regime. When an employee leaves, the OneDrive is eventually removed, and records can be lost or destroyed outside the municipality's *selectielijst*. SharePoint team sites are where retention labels and policies of the department apply.
 
-**How the Groene Coach helps.**
+**How OpruimCoach helps.**
 
 1. **It moves records to the legally correct place.** The nudge literally says: *"Zo staat het direct op de wettelijk juiste plek voor de Archiefwet."* By default, files move to the user's **department site**, into a clearly named folder "Verhuisd vanuit OneDrive".
 2. **It never deletes.**
@@ -188,6 +188,10 @@ Implementation: [backend/services/co2Calculator.js](backend/services/co2Calculat
 | `backup_dedup_reduction` | 0 | 0.30 | fraction | Site-level backup deduplicates versions. **Lower bound 0**: if the backup tool already deduplicates, there is no gain |
 | `mail_copies_per_recipient` | 1 | 1 | copy | Rick van Kersbergen rule |
 | `canal_lamp_power_w` | 40 | 40 | W | LED canal lamp, for the metaphor |
+| `kettle_litre_kwh` | 0.104 | 0.124 | kWh | Everyday example: 1 L water 15→100 °C = 0.099 kWh (physics) ÷ kettle efficiency 0.80–0.95 |
+| `phone_charge_kwh` | 0.014 | 0.024 | kWh | Everyday example: 3,000–5,000 mAh × 3.85 V ÷ charging efficiency ≈ 0.8. Cross-check: US EPA GHG Equivalencies Calculator (2024, ≈ 0.019 kWh), **verify before production** |
+
+**Everyday example.** Every `co2_per_year` in the API carries an `equivalent` (e.g. *"1 – 4 keer je telefoon opladen"*), computed from the same **energy** band, not from CO2, so it holds whatever grid factor is used. Kettle litres are used only when the lower bound is at least one litre; otherwise phone charges. Examples are deliberately small: one person's saving is grams of CO2, and a large example (a car trip) would make it look meaningless. The UI shows the explanation and source behind an "i" button.
 
 The engine **recomputes** the derived rows from the inputs, and a unit test asserts that the stored values match. The table therefore cannot silently drift from the code. `GET /api/co2-metrics` returns the table plus the engine's own check.
 
@@ -344,18 +348,18 @@ co2_metrics            (key, label, value_low, value_high, unit, category, deriv
 
 | Page | Simulates | Key behaviour |
 |---|---|---|
-| `index.html` | Teams personal app "Groene Coach" | **Actie-hub**: the nudge with the exact copy *"Samen groener werken, [Naam]? 🌿 …"*, Ja/Nu niet, a choice of target site, a green checkmark, then **"Toon map in Verkenner"**; the list of shared files; duplicate chains with a confirmation dialog and undo. **Verkenner**: site cards with "Toon map in Verkenner", and a before/after Windows Explorer preview (`<details>` tree, "Nieuw" badge on the shortcut, moved files tagged). **Impact**: range bars per department, metaphors, cloning waste, privacy note. **Privacy & berekening**: scopes from the token, plus the coefficient table. |
+| `index.html` | Teams personal app "OpruimCoach" | **Actie-hub**: the nudge with the exact copy *"Samen groener werken, [Naam]? 🌿 …"*, Ja/Nu niet, a choice of target site, a green checkmark, then **"Toon map in Verkenner"**; the list of shared files; duplicate chains with a confirmation dialog and undo. **Verkenner**: site cards with "Toon map in Verkenner", and a before/after Windows Explorer preview (`<details>` tree, "Nieuw" badge on the shortcut, moved files tagged). **Impact**: range bars per department, metaphors, cloning waste, privacy note. **Privacy & berekening**: scopes from the token, plus the coefficient table. |
 | `outlook.html` | Outlook on the web + OnMessageSend Smart Alert | A live "clone" visual of the Rick van Kersbergen rule. On send: an alert dialog with **Deel als link / Toch verzenden / Terug naar bericht**. Only sizes and the recipient count are sent to the API. |
 
-Security in the browser: a strict CSP (`default-src 'self'`, no inline scripts, no CDN, so it works offline on the VM), all dynamic text via `textContent` (XSS-safe), and the token in memory only. Accessibility: keyboard tabs, ARIA roles, a table view for the chart, `prefers-reduced-motion`, and light and dark themes.
+Security in the browser: a strict CSP (`default-src 'self'`, no inline scripts, no CDN, so it works offline on the VM), all dynamic text via `textContent` (XSS-safe), and the token in memory only. Accessibility: keyboard tabs, ARIA roles, a table view for the chart, `prefers-reduced-motion`. **Theme:** light by default (the OS dark setting is ignored on purpose, at the product owner's request); inside Teams the tab follows the user's Teams theme via the `?theme={theme}` placeholder in [`teams/manifest.json`](teams/manifest.json), see `frontend/public/js/theme.js`.
 
 ---
 
 ## 9. Testing
 
-`npm test` runs **26 automated tests** (Node's built-in test runner):
+`npm test` runs **28 automated tests** (Node's built-in test runner):
 
-- **CO2 engine (12):** the 3.6 g/GB/yr derivation and the consistency of the stored derived rows, "single move = 0 storage", the sync formula, the backup lower bound of 0, active vs. dormant, duplicate removal, the Rick van Kersbergen 20× rule, cumulative waste, metaphors, outward band rounding, and fail-loud validation.
+- **CO2 engine (14):** the 3.6 g/GB/yr derivation and the consistency of the stored derived rows, "single move = 0 storage", the sync formula, the backup lower bound of 0, active vs. dormant, duplicate removal, the Rick van Kersbergen 20× rule, cumulative waste, metaphors, outward band rounding, the everyday example (phone vs. kettle, honest labels), and fail-loud validation.
 - **API (14):** 401 for missing, forged and expired tokens; the Action Hub filter; migrate, then 409, then 403 for a foreign file; snooze; clean-up that requires confirmation, recycles without deleting, and can be undone; the DB trigger blocking `DELETE`; mapper idempotency and the explorer view; 403 for a non-member site; Smart Alert amplification and send-anyway; k-anonymous impact without user columns; the coefficient table; input validation; and a separate run **without admin consent** (403 everywhere, banner flag).
 
 ---
@@ -367,7 +371,20 @@ Security in the browser: a strict CSP (`default-src 'self'`, no inline scripts, 
 | `graphMock.js` + SQLite | Microsoft Graph client (`@microsoft/microsoft-graph-client`) with an OBO token |
 | `tokenService.js` (HMAC) | Entra ID: Teams SSO + MSAL Node OBO, JWKS validation, certificate in Key Vault |
 | `simulated-sso` + user picker | Removed (`ENABLE_SIMULATED_SSO=false`) |
-| `index.html` | Teams app manifest (personal tab) pointing to the same page |
+| `index.html` | Teams app manifest (personal tab) pointing to the same page; template in [`teams/manifest.json`](teams/manifest.json) |
 | `outlook.html` | Outlook add-in manifest with `LaunchEvent` `OnMessageSend`, `SendMode: PromptUser` |
 | SQLite telemetry | Azure SQL / Dataverse, same aggregated schema |
 | Recycle-bin flag | Graph `DELETE` (to the recycle bin, never `permanentDelete`) + `restore` |
+
+---
+
+## 11. Open risks for the Teams version
+
+These need a decision before the real Teams build. The PoC hides them behind the simulation.
+
+1. **Moving a file from OneDrive to SharePoint is a move between two drives.** The PoC simulates `PATCH /me/drive/items/{id}` with a new `parentReference.driveId`. As far as we know, Graph's move only works *within* one drive (to be verified against the current Graph documentation). Realistic options:
+   - `POST /me/drive/items/{id}/copy` to the site library (asynchronous, poll the monitor URL), then delete the original to the recycle bin. **Downside:** version history, sharing links and permissions of the original are lost.
+   - SharePoint REST `/_api/site/CreateCopyJobs` with `IsMoveMode: true` (what "Verplaatsen naar" in the SharePoint UI uses). Keeps version history, but needs a **SharePoint** permission (`AllSites.Write`) in addition to Graph.
+   - Either way the write permission is broader than minimal (`Files.ReadWrite.All` or SharePoint `AllSites.Write`, admin consent). The PoC requests no new permissions; this choice belongs with the CISO.
+2. **Server-side state in SQLite (DPIA).** Besides the simulated tenant, the backend stores *snoozes* ("Nu niet", purged after 7 days), a *personal action log* (`migration_log`, purged after 365 days) and *aggregated counters* (`telemetry_daily`, no user ids). Scan results are not stored in the browser, but this server-side state still counts as processing personal data (snoozes and the action log are linked to a user id). The real version needs a DPIA decision: keep it (with retention and a legal basis), move snoozes to the user's own mailbox/roaming settings, or drop the personal log and keep only aggregates.
+

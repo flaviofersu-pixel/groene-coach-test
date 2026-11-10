@@ -75,3 +75,21 @@ export function inTransaction(db, work) {
 export function isEmpty(db) {
   return db.prepare('SELECT COUNT(*) AS n FROM files').get().n === 0;
 }
+
+/**
+ * Version of the demo data model. Raise this number whenever schema.sql or the
+ * seed data changes in a way an existing database cannot follow (new table
+ * column, new required CO2 factor). The server then rebuilds the DEMO database
+ * on start. SQLite keeps the number in the file header (`PRAGMA user_version`).
+ */
+export const DEMO_DATA_VERSION = 2;
+
+/** Stamps the database with the current demo data version (called by the seed). */
+export function markDemoDataVersion(db) {
+  db.exec(`PRAGMA user_version = ${DEMO_DATA_VERSION}`);
+}
+
+/** @param {DatabaseSync} db @returns {boolean} True when the database was built by an older version. */
+export function isOutdated(db) {
+  return db.prepare('PRAGMA user_version').get().user_version !== DEMO_DATA_VERSION;
+}

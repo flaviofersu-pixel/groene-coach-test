@@ -1,5 +1,5 @@
 /*
- * teams.css — the simulated Microsoft Teams personal app ("Groene Coach").
+ * teams.css — the simulated Microsoft Teams personal app ("OpruimCoach").
  */
 
 :root {
@@ -7,9 +7,6 @@
   --warning-text: #5c4400;
   --ic-folder: #e8b33a;
   --ic-shortcut: #2b8a8a;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) { --warning-soft: #3a3214; --warning-text: #f2d77a; --ic-shortcut: #4fb3b3; }
 }
 :root[data-theme="dark"] { --warning-soft: #3a3214; --warning-text: #f2d77a; --ic-shortcut: #4fb3b3; }
 
@@ -66,6 +63,8 @@
 .panel { padding: 16px; margin-bottom: 16px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--border); min-width: 0; }
 .panel-head { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; margin-bottom: 12px; }
 .panel-title { font-size: 15px; font-weight: 700; }
+/* Inline so an info button can sit right after the title. */
+.panel-head .panel-title { display: inline; }
 .panel-title.spaced { margin-top: 18px; margin-bottom: 6px; }
 .panel-sub { font-size: 12px; color: var(--text-muted); }
 .grid-2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 16px; }
@@ -125,7 +124,9 @@
 .file-row-main { flex: 1; min-width: 0; }
 .file-row-name { font-weight: 600; overflow-wrap: anywhere; }
 .file-row-meta { font-size: 12px; color: var(--text-muted); }
-.file-row-band { flex: none; font-size: 12px; color: var(--text-2); text-align: right; white-space: nowrap; }
+.file-row-band { flex: none; max-width: 40%; font-size: 12px; color: var(--text-2); text-align: right; white-space: nowrap; }
+.file-row-band .co2 { align-items: flex-end; }
+.file-row-band .co2-value { font-weight: 600; }
 
 /* --- Duplicate chains ------------------------------------------------------- */
 .chain-list { display: flex; flex-direction: column; gap: 10px; }
@@ -178,6 +179,10 @@
 .kpi { padding: 14px 16px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--border); }
 .kpi-label { font-size: 13px; font-weight: 400; color: var(--text-2); }
 .kpi-value { font-size: 24px; font-weight: 600; line-height: 1.2; margin: 4px 0 2px; font-variant-numeric: tabular-nums; }
+.kpi-value .co2-value { font-weight: 600; }
+/* KPI tile: amount + "i" on the first line, the example label below it. */
+.kpi-value .co2--stacked { display: grid; grid-template-columns: auto auto; justify-content: start; align-items: center; gap: 6px 0; }
+.kpi-value .co2--stacked .co2-eq { grid-column: 1 / -1; justify-self: start; font-size: 13px; }
 .kpi-sub { font-size: 12px; color: var(--text-muted); }
 
 .segmented { display: inline-flex; padding: 2px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border); }
@@ -207,7 +212,8 @@
   background: var(--series-muted);
 }
 .range-row.is-mine .range-bar { background: var(--series-1); }
-.range-value { font-size: 12px; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.range-value { font-size: 12px; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
+.range-value .co2 { align-items: flex-end; }
 
 .tooltip { position: fixed; z-index: 60; pointer-events: none; max-width: 260px; padding: 8px 10px; border-radius: 6px; background: var(--surface); color: var(--text); border: 1px solid var(--border); box-shadow: var(--shadow); font-size: 12px; }
 .tooltip strong { display: block; font-size: 13px; margin-bottom: 2px; }

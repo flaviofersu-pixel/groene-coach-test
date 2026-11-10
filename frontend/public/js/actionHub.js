@@ -13,12 +13,17 @@
 import { api } from './api.js';
 import { el, append, button, fileIcon, toast } from './dom.js';
 import { formatSize, formatRelative, firstName, plural } from './format.js';
+import { co2Amount, co2Text, co2InfoButton, co2Example } from './co2.js';
 
 const $ = (id) => document.getElementById(id);
 
 /** @param {object} ctx shared app context (see app.js) */
 export function createActionHub(ctx) {
   const state = { files: [], chains: [], currentId: null, snoozedCount: 0 };
+
+  // One CO2 explanation button per list panel (the rows themselves stay short).
+  $('candidates-title').after(co2InfoButton());
+  $('chains-title').after(co2InfoButton());
 
   const departmentSite = () => ctx.me.sites.find((s) => s.department === ctx.me.user.department) ?? ctx.me.sites[0];
 
@@ -32,33 +37,33 @@ export function createActionHub(ctx) {
         el('span', 'nudge-avatar', '🌿'),
         append(el('div'),
           el('p', 'nudge-title', 'Alles staat op de juiste plek'),
-          el('p', 'nudge-text', 'Je hebt geen intensief gedeelde bestanden meer in je OneDrive. Dank je wel!'))));
+          el('p', 'nudge-text', 'Je hebt geen gedeelde bestanden meer in je OneDrive die bij je team horen. Dank je wel!'))));
       return;
     }
     state.currentId = file.id;
 
     const body = el('div');
     append(body,
-      el('p', 'nudge-from', 'Groene Coach · nu'),
+      el('p', 'nudge-from', 'OpruimCoach · nu'),
       // Exact copy from the brief, personalised with the first name.
       el('h2', 'nudge-title', `Samen groener werken, ${firstName(ctx.me.user.display_name)}? 🌿`),
-      el('p', 'nudge-text', 'Dit bestand wordt intensief gedeeld met je team. Zullen we het verhuizen naar SharePoint? Zo staat het direct op de wettelijk juiste plek voor de Archiefwet en besparen we netwerk- en back-up-energie.'));
+      el('p', 'nudge-text', 'Dit is een gedeeld bestand dat bij je team hoort. Zullen we het verhuizen naar SharePoint? Zo staat het direct op de wettelijk juiste plek voor de Archiefwet en besparen we netwerk- en back-up-energie.'));
 
     const chip = append(el('div', 'nudge-file'), fileIcon(file.filename),
       append(el('div'),
         el('div', 'nudge-file-name', file.filename),
         el('div', 'nudge-file-meta',
-          `Gedeeld met ${file.times_shared} collega's · ${formatSize(file.size_mb)} · gewijzigd ${formatRelative(file.last_modified)} · map ${file.folder}`)));
+          `Gedeeld bestand · ${formatSize(file.size_mb)} · gewijzigd ${formatRelative(file.last_modified)} · map ${file.folder}`)));
 
     const estimate = el('p', 'nudge-estimate', 'Geschatte besparing: ');
-    append(estimate, el('strong', '', `${file.estimate.co2_per_year.label} per jaar`));
+    append(estimate, co2Amount(file.estimate.co2_per_year));
 
     const details = el('details', 'nudge-details');
     const list = el('ul');
     append(list,
       el('li', '', `Opslag: ${file.estimate.breakdown.storage.label}. ${file.estimate.breakdown.storage.note}`),
-      el('li', '', `Synchronisatie: ${file.estimate.breakdown.sync.label}`),
-      el('li', '', `Back-up: ${file.estimate.breakdown.backup.label}`),
+      el('li', '', `Synchronisatie: ${co2Text(file.estimate.breakdown.sync, '')}`),
+      el('li', '', `Back-up: ${co2Text(file.estimate.breakdown.backup, '')}`),
       el('li', '', file.activity === 'active'
         ? 'Het bestand is recent gewijzigd, dus er is actief sync-verkeer.'
         : 'Het bestand is al een tijd niet gewijzigd, dus de besparing is klein.'));
@@ -112,7 +117,8 @@ export function createActionHub(ctx) {
 
     const body = append(el('div'),
       el('h2', 'nudge-title', `Verhuisd naar SharePoint · ${result.site.display_name}`),
-      el('p', 'nudge-text', `${result.file.filename} staat nu op de wettelijk juiste plek. Geschatte besparing: ${result.estimate.co2_per_year.label} per jaar. ${result.storage_note}`),
+      el('p', 'nudge-text', `${result.file.filename} staat nu op de wettelijk juiste plek. ${result.storage_note}`),
+      append(el('p', 'nudge-estimate', 'Geschatte besparing: '), co2Amount(result.estimate.co2_per_year)),
       append(el('div', 'nudge-actions'), showFolder, nextBtn));
     $('nudge-slot').replaceChildren(append(el('article', 'nudge'), append(el('div', 'nudge-done'), check), body));
   }
@@ -156,14 +162,14 @@ export function createActionHub(ctx) {
   function renderList() {
     const list = $('candidate-list');
     list.replaceChildren();
-    if (state.files.length === 0) list.append(el('li', 'empty', 'Geen intensief gedeelde bestanden in je OneDrive. 🌿'));
+    if (state.files.length === 0) list.append(el('li', 'empty', 'Geen gedeelde bestanden in je OneDrive. 🌿'));
     for (const f of state.files) {
       const row = append(el('li', `file-row${f.id === state.currentId ? ' is-current' : ''}`),
         fileIcon(f.filename),
         append(el('div', 'file-row-main'),
           el('div', 'file-row-name', f.filename),
-          el('div', 'file-row-meta', `Gedeeld met ${f.times_shared} · ${formatSize(f.size_mb)} · ${f.activity === 'active' ? 'actief' : 'slapend'}`)),
-        el('span', 'file-row-band', f.estimate.co2_per_year.label),
+          el('div', 'file-row-meta', `Gedeeld bestand · ${formatSize(f.size_mb)} · ${f.activity === 'active' ? 'actief' : 'slapend'}`)),
+        append(el('span', 'file-row-band'), co2Amount(f.estimate.co2_per_year, { suffix: '', info: false, stacked: true })),
         button('Bekijken', 'btn btn-secondary btn-sm', () => {
           state.currentId = f.id;
           renderNudge();
@@ -190,12 +196,12 @@ export function createActionHub(ctx) {
         append(el('div', 'chain-head'), fileIcon(ch.filename), el('span', 'chain-name', ch.filename)),
         el('p', 'chain-meta',
           `${ch.total_copies} identieke kopieën in de gemeente · ${ch.my_copies.length} bij jou` +
-          (ch.colleagues_with_copy ? ` · ${plural(ch.colleagues_with_copy, 'collega heeft', 'collega\'s hebben')} er ook een` : '') +
           ` · ${formatSize(ch.size_mb)} per stuk`),
         el('p', 'chain-meta', ch.master
           ? `Origineel: SharePoint › ${ch.master.site} › ${ch.master.folder}`
           : 'Nog geen centrale versie op SharePoint.'),
-        el('p', 'chain-meta', `Verspilling hele reeks: ${ch.chain_waste.co2_per_year.label} per jaar (${formatSize(ch.size_mb * (ch.total_copies - 1))} dubbel).`));
+        append(el('p', 'chain-meta', `Verspilling hele reeks: ${ch.chain_waste.co2_per_year.label} per jaar (${formatSize(ch.size_mb * (ch.total_copies - 1))} dubbel) `),
+          co2Example(ch.chain_waste.co2_per_year.equivalent)));
 
       const copies = el('ul', 'chain-copies');
       for (const c of ch.my_copies) copies.append(el('li', '', `${c.filename} (${c.folder})`));
@@ -203,7 +209,8 @@ export function createActionHub(ctx) {
 
       const foot = el('div', 'chain-foot');
       if (ch.can_consolidate) {
-        foot.append(el('span', 'small muted', `Jij kunt ${formatSize(ch.size_mb * ch.removable_count)} vrijmaken: ${ch.my_saving.co2_per_year.label} per jaar`),
+        foot.append(append(el('span', 'small muted', `Jij kunt ${formatSize(ch.size_mb * ch.removable_count)} vrijmaken: `),
+          co2Amount(ch.my_saving.co2_per_year, { info: false })),
           button('Ruim mijn kopieën op…', 'btn btn-secondary btn-sm', () => confirmConsolidate(ch)));
       } else {
         foot.append(el('span', 'small muted', ch.master
@@ -235,7 +242,7 @@ export function createActionHub(ctx) {
       close();
       try {
         const result = await api.consolidate(chain.content_hash);
-        toast(`${plural(result.recycled.length, 'kopie', 'kopieën')} naar de prullenbak · ${result.estimate.co2_per_year.label} per jaar bespaard.`, {
+        toast(`${plural(result.recycled.length, 'kopie', 'kopieën')} naar de prullenbak · ${co2Text(result.estimate.co2_per_year)} bespaard.`, {
           actionLabel: 'Ongedaan maken',
           ms: 10_000,
           onAction: async () => {

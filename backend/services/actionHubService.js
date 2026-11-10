@@ -89,11 +89,11 @@ export function createActionHubService({ db, graph, coefficients: c, telemetry, 
       folder: file.folder_name,
       activity: est.activity,
       estimate: {
-        ...presentEstimate(est.total),
+        ...presentEstimate(est.total, c),
         breakdown: {
           storage: { label: '0 gram CO₂', note: est.storage.note },
-          sync: presentEstimate({ co2_g: est.sync.co2_g, kwh: est.sync.kwh }).co2_per_year,
-          backup: presentEstimate({ co2_g: est.backup.co2_g, kwh: est.backup.kwh }).co2_per_year,
+          sync: presentEstimate({ co2_g: est.sync.co2_g, kwh: est.sync.kwh }, c).co2_per_year,
+          backup: presentEstimate({ co2_g: est.backup.co2_g, kwh: est.backup.kwh }, c).co2_per_year,
         },
       },
       _sortKey: est.total.co2_g.high,
@@ -119,7 +119,7 @@ export function createActionHubService({ db, graph, coefficients: c, telemetry, 
         size_mb: size,
         total_copies: copies.length,
         // Organisation-wide waste of this chain, the honest storage figure.
-        chain_waste: presentEstimate(estimateDuplicateRemoval(size, copies.length - 1, c).total),
+        chain_waste: presentEstimate(estimateDuplicateRemoval(size, copies.length - 1, c).total, c),
         my_copies: mine.map((f) => ({ id: f.id, filename: f.filename, folder: f.od_folder })),
         colleagues_with_copy: colleagues, // a count, never names (privacy)
         master: master
@@ -127,7 +127,7 @@ export function createActionHubService({ db, graph, coefficients: c, telemetry, 
           : null,
         removable_count: removable.length,
         can_consolidate: removable.length > 0,
-        my_saving: presentEstimate(estimateDuplicateRemoval(size, removable.length, c).total),
+        my_saving: presentEstimate(estimateDuplicateRemoval(size, removable.length, c).total, c),
       },
     };
   }
@@ -189,7 +189,7 @@ export function createActionHubService({ db, graph, coefficients: c, telemetry, 
       return {
         file: { id: result.file.id, filename: result.file.filename, current_location: result.file.current_location },
         site: { id: result.site.id, display_name: result.site.display_name, web_url: result.site.web_url },
-        estimate: presentEstimate(est.total),
+        estimate: presentEstimate(est.total, c),
         storage_note: est.storage.note,
       };
     },
@@ -249,7 +249,7 @@ export function createActionHubService({ db, graph, coefficients: c, telemetry, 
       return {
         master: { filename: outcome.master.filename, location: 'SharePoint', site: outcome.master.site_name ?? null },
         recycled: outcome.recycled,
-        estimate: presentEstimate(total),
+        estimate: presentEstimate(total, c),
         colleagues_with_copy: chain.colleagues,
         restore_hint: 'Kopieën staan in je prullenbak en zijn 93 dagen terug te zetten.',
       };

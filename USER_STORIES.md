@@ -4,7 +4,7 @@ Nov 9, 2026 · Flavio
 
 ## Context and roles
 
-The production Groene Coach replaces every simulated part of the PoC v2 with the real Microsoft 365 stack for Gemeente Amsterdam, and keeps its rules. Those rules: the civil servant always decides, nothing is ever hard-deleted, and CO2 is always shown as a range.
+The production OpruimCoach replaces every simulated part of the PoC v2 with the real Microsoft 365 stack for Gemeente Amsterdam, and keeps its rules. Those rules: the civil servant always decides, nothing is ever hard-deleted, and CO2 is always shown as a range.
 
 | PoC (mock-up) | Real tool |
 | --- | --- |
@@ -51,7 +51,7 @@ Each story has a MoSCoW priority. 'Must' stories form the minimum for a pilot wi
 
 | ID | Story | Priority | Acceptance criteria |
 | --- | --- | --- | --- |
-| US-1.1 | As a civil servant, I want to be signed in automatically when I open the Groene Coach tab in Teams, so that I never have to log in separately. | Must | Teams SSO gets a token silently; the one-time consent prompt appears only if needed; no password field in the app; no token in localStorage or cookies. |
+| US-1.1 | As a civil servant, I want to be signed in automatically when I open the OpruimCoach tab in Teams, so that I never have to log in separately. | Must | Teams SSO gets a token silently; the one-time consent prompt appears only if needed; no password field in the app; no token in localStorage or cookies. |
 | US-1.2 | As a tenant admin, I want to grant admin consent for exactly the delegated scopes the tool needs, so that users can start without each one being asked. | Must | App registration lists only User.Read, Files.Read.All, Files.ReadWrite.All and Sites.Read.All (delegated); no application permissions; consent steps documented. |
 | US-1.3 | As a civil servant, I want a clear message when admin consent is missing, so that I know it is not something I did wrong. | Must | Banner explains consent is pending; all file actions are disabled; the API answers 403 instead of failing silently. |
 | US-1.4 | As a CISO, I want the backend to validate every token and exchange it on-behalf-of the user, so that no forged or stolen token can reach Graph. | Must | Issuer, audience, tenant id and expiry checked against Entra JWKS; OBO tokens kept in memory only and never logged; certificate stored in Key Vault, no client secret in code or config. |

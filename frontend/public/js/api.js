@@ -1,6 +1,6 @@
 /**
  * @file api.js
- * @description Client for the Groene Coach API, shared by the Teams app and
+ * @description Client for the OpruimCoach API, shared by the Teams app and
  * the Outlook simulation.
  *
  * TOKEN HANDLING (mirrors production Teams SSO):
@@ -37,7 +37,7 @@ async function rawRequest(path, { method = 'GET', body, token } = {}) {
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
   } catch {
-    throw Object.assign(new Error('Geen verbinding met de Groene Coach-server.'), { status: 0 });
+    throw Object.assign(new Error('Geen verbinding met de OpruimCoach-server.'), { status: 0 });
   }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {

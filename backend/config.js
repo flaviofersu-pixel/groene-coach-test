@@ -20,7 +20,7 @@ import { fileURLToPath } from 'node:url';
 export const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 /**
- * Microsoft Graph delegated permissions the Groene Coach needs, and why.
+ * Microsoft Graph delegated permissions OpruimCoach needs, and why.
  * `Files.ReadWrite.All` is the sensitive one: moving a file out of a personal
  * OneDrive into a SharePoint library writes to two different drives.
  */

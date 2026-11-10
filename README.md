@@ -1,8 +1,8 @@
-# Groene Coach: Data Lifecycle & Carbon Reduction Tool (PoC v2)
+# OpruimCoach: Data Lifecycle & Carbon Reduction Tool (PoC v2)
 
 **Version 2: "From Insight to Action"**, for a simulated **Gemeente Amsterdam** Microsoft 365 tenant.
 
-The Groene Coach is a **Microsoft Teams web app** plus a simulated **Outlook Smart Alert**. It politely coaches civil servants to:
+OpruimCoach is a **Microsoft Teams web app** plus a simulated **Outlook Smart Alert**. It politely coaches civil servants to:
 
 1. move intensively shared files from their personal **OneDrive** to the department's **SharePoint** site (the right place under the Archiefwet);
 2. add their department library to OneDrive with **one click** ("Toon map in Verkenner");
@@ -15,7 +15,7 @@ CO2 figures are honest **ranges** ("0,4 – 9 gram CO₂ per jaar"), based on th
 
 | What | URL (default) |
 |---|---|
-| Teams app "Groene Coach" | http://127.0.0.1:3000/ |
+| Teams app "OpruimCoach" | http://127.0.0.1:3000/ |
 | Outlook Smart Alert simulation | http://127.0.0.1:3000/outlook.html |
 | REST API (simulated Graph + coach) | http://127.0.0.1:3001/api |
 
@@ -101,7 +101,7 @@ npm start
 [api] M365 tenant simulation listening on http://127.0.0.1:3001
 [api] Admin consent for Files.ReadWrite.All: granted
 [start] Both servers are running. Press Ctrl+C to stop.
-[web] Teams app (Groene Coach): http://127.0.0.1:3000/
+[web] Teams app (OpruimCoach): http://127.0.0.1:3000/
 [web] Outlook Smart Alert:      http://127.0.0.1:3000/outlook.html
 ```
 
@@ -131,7 +131,7 @@ curl http://127.0.0.1:3001/api/health      # {"status":"ok",...}
 
 ```ini
 [Unit]
-Description=Groene Coach PoC (M365 simulation + Teams/Outlook web UI)
+Description=OpruimCoach PoC (M365 simulation + Teams/Outlook web UI)
 After=network.target
 
 [Service]
