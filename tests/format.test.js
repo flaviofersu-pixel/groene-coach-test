@@ -5,7 +5,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { formatRelative, lastEditedLabel } from '../frontend/public/js/format.js';
+import { formatRelative, lastEditedLabel, greetingFor } from '../frontend/public/js/format.js';
 
 const NOW = Date.parse('2026-11-10T12:00:00Z');
 const daysAgo = (d) => new Date(NOW - d * 86_400_000).toISOString();
@@ -22,4 +22,12 @@ test('formatRelative says how long ago in plain Dutch', () => {
 
 test('the label says "bewerkt", never "geopend" (only the edit date is reliable)', () => {
   assert.equal(lastEditedLabel(daysAgo(800), NOW), 'Laatst bewerkt 2 jaar geleden');
+});
+
+test('plain greeting by time of day, no emoji', () => {
+  const at = (h) => new Date(2026, 10, 10, h, 0);
+  assert.equal(greetingFor(at(8)), 'Goedemorgen');
+  assert.equal(greetingFor(at(14)), 'Goedemiddag');
+  assert.equal(greetingFor(at(20)), 'Goedenavond');
+  assert.equal(greetingFor(at(2)), 'Goedenavond');
 });

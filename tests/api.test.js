@@ -74,7 +74,8 @@ describe('OpruimCoach API', () => {
       assert.equal(f.current_location, 'OneDrive');
       assert.ok(f.times_shared > 2);
       assert.match(f.estimate.co2_per_year.label, /gram CO₂|kg CO₂/);
-      assert.match(f.estimate.co2_per_year.equivalent.label, /telefoon|water|besparing/); // everyday example
+      const eq = f.estimate.co2_per_year.equivalent; // everyday example: phone only, or nothing below 1 charge
+      assert.ok(eq === null || /telefoon opladen/.test(eq.label));
       assert.equal(f.estimate.storage_freed_mb, 0); // single move: no storage saving
       assert.equal(f.estimate.breakdown.storage.label, '0 gram CO₂');
       assert.equal(f.suggested_site.display_name, 'Wonen'); // own team site

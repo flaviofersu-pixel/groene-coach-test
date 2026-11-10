@@ -11,7 +11,6 @@
 import { api } from './api.js';
 import { el, append, button, fileIcon, infoButton, toast } from './dom.js';
 import { formatSize, lastEditedLabel, plural } from './format.js';
-import { co2Amount, co2Text } from './co2.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -34,8 +33,7 @@ export function createDuplicates(ctx) {
     const foot = el('div', 'chain-foot');
     if (ch.can_consolidate) {
       foot.append(
-        append(el('span', 'small muted', `Jij kunt ${formatSize(ch.size_mb * ch.removable_count)} vrijmaken: `),
-          co2Amount(ch.my_saving.co2_per_year, { info: false })),
+        el('span', 'small muted', `Jij kunt ${formatSize(ch.size_mb * ch.removable_count)} vrijmaken in je OneDrive`),
         button('Ruim mijn kopieën op…', 'btn btn-secondary btn-sm', () => confirmConsolidate(ch)));
     } else {
       foot.append(el('span', 'small muted', 'Je hebt hier geen overbodige kopie. Tip: deel voortaan de link naar de teamsite.'));
@@ -76,7 +74,7 @@ export function createDuplicates(ctx) {
       close();
       try {
         const result = await api.consolidate(chain.content_hash);
-        toast(`${plural(result.recycled.length, 'kopie', 'kopieën')} naar de prullenbak · ${co2Text(result.estimate.co2_per_year)} bespaard.`, {
+        toast(`${plural(result.recycled.length, 'kopie', 'kopieën')} naar de prullenbak · ${formatSize(result.estimate.storage_freed_mb)} vrij in je OneDrive.`, {
           actionLabel: 'Ongedaan maken',
           ms: 10_000,
           onAction: async () => {

@@ -49,5 +49,17 @@ export const lastEditedLabel = (iso, now) => `Laatst bewerkt ${formatRelative(is
 /** "1 bestand" / "3 bestanden" */
 export const plural = (n, one, many) => `${formatNumber(n, 0)} ${n === 1 ? one : many}`;
 
-/** First name for the friendly nudge copy. */
+/**
+ * Plain greeting based on the time of day (browser clock, no data involved):
+ * "Goedemorgen" until 12:00, "Goedemiddag" until 18:00, otherwise "Goedenavond".
+ * @param {Date} date
+ */
+export function greetingFor(date) {
+  const hour = date.getHours();
+  if (hour >= 6 && hour < 12) return 'Goedemorgen';
+  if (hour >= 12 && hour < 18) return 'Goedemiddag';
+  return 'Goedenavond';
+}
+
+/** First name for the greeting. */
 export const firstName = (displayName) => displayName.split(' ')[0];

@@ -40,13 +40,8 @@ export const CO2_METRICS = [
     'Site-back-up dedupliceert versies; ondergrens 0 als back-up al dedupliceert', 'Aanname PoC'],
   ['mail_copies_per_recipient', 'Kopieën per ontvanger (bijlage)', 1, 1, 'kopie', 'behaviour',
     'Regel van Rick van Kersbergen: 1 bijlage aan 20 mensen = 20× opslag', 'Projectbrief v2'],
-  ['canal_lamp_power_w', 'Vermogen grachtenlantaarn (LED)', 40, 40, 'W', 'metaphor',
-    'Eén lantaarn een uur = 0,04 kWh', 'Indicatief'],
-  // Everyday examples next to every CO2 amount. Deliberately SMALL: one person's
-  // storage saving is grams, so a car trip would make it look meaningless.
-  ['kettle_litre_kwh', '1 liter water koken in een waterkoker', 0.104, 0.124, 'kWh', 'metaphor',
-    '1 kg water van 15 naar 100 °C = 4,186 kJ/(kg·K) × 85 K = 356 kJ = 0,099 kWh; ÷ rendement waterkoker 0,80–0,95',
-    'Natuurkunde (soortelijke warmte water); rendement: gangbare schatting, 2026'],
+  // The everyday example next to the main CO2 total. Deliberately SMALL: one person's
+  // saving is grams, so a car trip would make it look meaningless.
   ['phone_charge_kwh', 'Smartphone een keer volledig opladen', 0.014, 0.024, 'kWh', 'metaphor',
     'Accu 3.000–5.000 mAh × 3,85 V = 11,5–19,3 Wh; ÷ laadrendement ca. 0,8',
     'Afgeleid uit gangbare accucapaciteit 2024–2026; vergelijk US EPA GHG Equivalencies Calculator (2024, ca. 0,019 kWh)'],

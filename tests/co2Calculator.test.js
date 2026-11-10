@@ -7,7 +7,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   coefficientsFromRows, storageGramsPerGbYear, networkGramsPerGb, estimateMigration,
-  estimateDuplicateRemoval, estimateAttachmentCloning, cumulativeCloningWaste, equivalents, formatBand, band,
+  estimateDuplicateRemoval, estimateAttachmentCloning, cumulativeCloningWaste, formatBand, band,
   everydayEquivalent, formatEquivalent,
 } from '../backend/services/co2Calculator.js';
 import { CO2_METRICS } from '../backend/db/seedData.js';
@@ -97,13 +97,6 @@ test('cumulative cloning waste sums all attachments', () => {
   assert.equal(w.average_amplification, 12);
 });
 
-test('equivalents: 1 kWh = 25 canal-lamp hours; cooling = (PUE-1)/PUE of data-centre energy', () => {
-  const eq = equivalents({ kwh: band(1, 2), dc_kwh: band(1.185) }, c);
-  close(eq.lamp_hours.low, 25);
-  close(eq.lamp_hours.high, 50);
-  close(eq.cooling_kwh.low, 0.185);
-});
-
 test('formatBand returns honest, outward-rounded ranges instead of exact numbers', () => {
   assert.equal(formatBand(band(3.2, 4.6)).label, '3 – 5 gram CO₂');
   assert.equal(formatBand(band(0.46, 8.96)).label, '0,4 – 9 gram CO₂');
@@ -115,24 +108,19 @@ test('formatBand returns honest, outward-rounded ranges instead of exact numbers
   assert.equal(formatBand(band(0.09, 2.1), 'kwh').label, '0,09 – 3 kWh');
 });
 
-test('everyday example: phone charges for small savings, kettle litres once at least one is certain', () => {
-  // 0.1 kWh: not certainly one kettle litre (0.104 – 0.124 kWh), so phone charges.
-  const small = everydayEquivalent(band(0.05, 0.1), c);
-  assert.equal(small.kind, 'phone');
-  close(small.count.low, 0.05 / c.phone_charge_kwh.high); // least energy ÷ most per charge
-  close(small.count.high, 0.1 / c.phone_charge_kwh.low);  // most energy ÷ least per charge
-
-  const big = everydayEquivalent(band(0.5, 1), c);
-  assert.equal(big.kind, 'kettle');
-  assert.ok(big.count.low >= 1);
+test('everyday example: always phone charges, as an honest band', () => {
+  const eq = everydayEquivalent(band(0.05, 0.1), c);
+  assert.equal(eq.kind, 'phone');
+  close(eq.count.low, 0.05 / c.phone_charge_kwh.high); // least energy ÷ most per charge
+  close(eq.count.high, 0.1 / c.phone_charge_kwh.low);  // most energy ÷ least per charge
 });
 
-test('everyday example labels stay honest ranges in plain Dutch', () => {
+test('everyday example is never shown below one charge, and never as a fraction', () => {
   assert.equal(formatEquivalent({ kind: 'phone', count: band(1.2, 3.4) }).label, '1 – 4 keer je telefoon opladen');
-  assert.equal(formatEquivalent({ kind: 'phone', count: band(0.05, 0.6) }).label, 'minder dan 1 keer je telefoon opladen');
-  assert.equal(formatEquivalent({ kind: 'phone', count: band(0, 2.2) }).label, 'tot 3 keer je telefoon opladen');
-  assert.equal(formatEquivalent({ kind: 'kettle', count: band(2, 5) }).label, '2 – 5 keer 1 liter water koken');
-  assert.equal(formatEquivalent({ kind: 'phone', count: band(0, 0) }).label, 'geen meetbare besparing');
+  assert.equal(formatEquivalent({ kind: 'phone', count: band(0.06, 2.2) }).label, 'tot 3 keer je telefoon opladen');
+  assert.equal(formatEquivalent({ kind: 'phone', count: band(0, 25) }).label, 'tot 25 keer je telefoon opladen');
+  assert.equal(formatEquivalent({ kind: 'phone', count: band(0.05, 0.6) }), null); // "minder dan 1 keer": show nothing
+  assert.equal(formatEquivalent({ kind: 'phone', count: band(0, 0) }), null);
 });
 
 test('missing coefficients and invalid input fail loudly', () => {

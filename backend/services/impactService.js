@@ -29,7 +29,7 @@
 
 import { config } from '../config.js';
 import {
-  band, addBands, equivalents, cumulativeCloningWaste, formatBand,
+  band, addBands, cumulativeCloningWaste,
   storageGramsPerGbYear, networkGramsPerGb,
 } from './co2Calculator.js';
 import { presentEstimate, round } from './present.js';
@@ -88,10 +88,9 @@ export function createImpactService({ db, coefficients: c }) {
     acc.dc_kwh = addBands(acc.dc_kwh, band(sign * row.dc_low, sign * row.dc_high));
   }
 
-  /** Accumulator -> API shape with formatted bands and metaphors. */
+  /** Accumulator -> API shape with formatted bands. */
   function present(acc) {
     const clamp = (b) => band(Math.max(0, b.low), Math.max(0, b.high));
-    const eq = equivalents({ kwh: clamp(acc.kwh), dc_kwh: clamp(acc.dc_kwh) }, c);
     return {
       ...presentEstimate({ co2_g: clamp(acc.co2), kwh: clamp(acc.kwh) }, c),
       migrations: acc.migrations,
@@ -103,10 +102,6 @@ export function createImpactService({ db, coefficients: c }) {
       mb_moved: round(acc.mb_moved, 1),
       storage_freed_mb: round(Math.max(0, acc.storage_freed_mb), 1),
       storage_avoided_mb: round(acc.storage_avoided_mb, 1),
-      equivalents: {
-        lamp_hours: formatBand(eq.lamp_hours, 'count'),
-        cooling_kwh: formatBand(eq.cooling_kwh, 'kwh'),
-      },
     };
   }
 

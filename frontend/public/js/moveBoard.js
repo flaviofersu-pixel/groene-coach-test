@@ -23,7 +23,6 @@
 import { api } from './api.js';
 import { el, append, button, fileIcon, icon, infoButton, toast } from './dom.js';
 import { formatSize, lastEditedLabel, plural } from './format.js';
-import { co2Amount, co2Text } from './co2.js';
 import { openMoveDialog, siteLabel, folderLabel } from './moveDialog.js';
 import { renderExplorerWindow, folderNode } from './explorerWindow.js';
 
@@ -62,14 +61,13 @@ export function createMoveBoard(ctx) {
 
   /** Asks for the folder (and confirmation) in the dialog, then moves the file. */
   async function move(file, { folderId } = {}) {
-    const estimate = state.ready.find((f) => f.id === file.id)?.estimate;
-    const choice = await openMoveDialog({ file, tree: state.tree, folderId, estimate });
+    const choice = await openMoveDialog({ file, tree: state.tree, folderId });
     if (!choice) return;
     try {
       const result = await api.migrate(file.id, choice.siteId, choice.folderId);
       lastMove = { siteId: result.site.id, folderId: result.folder.id, fileId: result.file.id };
-      const saving = result.estimate ? ` Geschatte besparing: ${co2Text(result.estimate.co2_per_year)}.` : '';
-      toast(`${result.file.filename} staat nu in ${folderLabel(result.site, result.folder)}.${saving}`, { ms: 8000 });
+      // One file: no CO2 here (tiny numbers say nothing); the totals are on the Actie-hub and Impact.
+      toast(`${result.file.filename} staat nu in ${folderLabel(result.site, result.folder)}.`, { ms: 8000 });
       await ctx.refreshAll(); // every tab (and other open windows) shows the new situation
     } catch (err) {
       toast(err.message);
@@ -239,7 +237,6 @@ export function createMoveBoard(ctx) {
         append(el('div', 'ready-target'), icon('shortcut'),
           el('span', '', `Voorstel: teamsite ${siteLabel(file.suggested_site)} (jij kiest de map)`))),
       append(el('div', 'ready-side'),
-        co2Amount(file.estimate.co2_per_year, { info: false, stacked: true }),
         append(el('div', 'row-actions'),
           button('Verhuizen…', 'btn btn-primary btn-sm', () => move(file)),
           button('Nu niet', 'btn btn-secondary btn-sm', () => snooze(file)))));

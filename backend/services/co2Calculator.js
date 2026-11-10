@@ -29,8 +29,7 @@ const WH_PER_KWH = 1000;
 export const REQUIRED_COEFFICIENTS = Object.freeze([
   'grid_emission_factor', 'storage_power_w_per_tb', 'pue', 'storage_replication_factor',
   'network_energy_kwh_per_gb', 'edit_cycles_active', 'edit_cycles_dormant', 'active_window_days',
-  'delta_sync_reduction', 'backup_dedup_reduction', 'mail_copies_per_recipient', 'canal_lamp_power_w',
-  'kettle_litre_kwh', 'phone_charge_kwh',
+  'delta_sync_reduction', 'backup_dedup_reduction', 'mail_copies_per_recipient', 'phone_charge_kwh',
 ]);
 
 // --- Band arithmetic -----------------------------------------------------------------
@@ -216,65 +215,36 @@ export function cumulativeCloningWaste(rows, c) {
   };
 }
 
-// --- Metaphors ----------------------------------------------------------------------------
+// --- Everyday example -----------------------------------------------------------------------
 
 /**
- * Realistic, non-inflated comparisons.
- *  lamp_hours  : how many canal street lamps burn for ONE hour on this energy
- *  cooling_kwh : the share of data-centre energy that goes to cooling and
- *                other overhead = dc_kWh x (PUE - 1) / PUE  (≈ 15.6 %)
- * @param {{ kwh: Band, dc_kwh: Band }} energy
- */
-export function equivalents({ kwh, dc_kwh }, c) {
-  const pue = c.pue.low;
-  return {
-    lamp_hours: band((kwh.low * WH_PER_KWH) / c.canal_lamp_power_w.high, (kwh.high * WH_PER_KWH) / c.canal_lamp_power_w.low),
-    cooling_kwh: mulBand(dc_kwh, (pue - 1) / pue),
-  };
-}
-
-/**
- * One small, recognisable everyday example for an amount of energy.
+ * The ONE everyday example used in the whole app: charging a phone.
  *
- * We compare ENERGY (kWh), not CO2: the kettle and the phone use the same
- * electricity grid, so the comparison holds whatever emission factor is used.
- *
- * Choice of example: a full litre in the kettle when the saving is at least
- * one kettle for sure (lower bound >= 1); otherwise a phone charge, which is
- * about 6× smaller and so still gives a readable number for tiny savings.
- *
- * Bands stay honest: low = least energy ÷ most energy per example, and
- * high = most energy ÷ least energy per example.
+ * We compare ENERGY (kWh), not CO2: the phone uses the same electricity grid,
+ * so the comparison holds whatever emission factor is used.
+ * Bands stay honest: low = least energy ÷ most energy per charge, and
+ * high = most energy ÷ least energy per charge.
  *
  * @param {Band} kwh
- * @returns {{ kind: 'kettle'|'phone', count: Band }}
+ * @returns {{ kind: 'phone', count: Band }}
  */
 export function everydayEquivalent(kwh, c) {
-  const countFor = (factor) => band(kwh.low / factor.high, kwh.high / factor.low);
-  const kettles = countFor(c.kettle_litre_kwh);
-  if (kettles.low >= 1) return { kind: 'kettle', count: kettles };
-  return { kind: 'phone', count: countFor(c.phone_charge_kwh) };
+  return { kind: 'phone', count: band(kwh.low / c.phone_charge_kwh.high, kwh.high / c.phone_charge_kwh.low) };
 }
 
-/** Dutch wording per example ("keer ..."). */
-const EQUIVALENT_TEXT = {
-  kettle: '1 liter water koken',
-  phone: 'je telefoon opladen',
-};
-
 /**
- * Formats an everyday example, e.g. "2 – 5 keer je telefoon opladen".
- * @param {{ kind: 'kettle'|'phone', count: Band }} eq
- * @returns {{ kind: string, low: number, high: number, label: string }}
+ * Formats the everyday example, e.g. "2 – 5 keer je telefoon opladen".
+ * Returns null when it would be less than one charge: "0,06 keer" or
+ * "minder dan 1 keer" says nothing, so the UI then shows no example at all.
+ * @param {{ kind: 'phone', count: Band }} eq
+ * @returns {{ kind: string, low: number, high: number, label: string } | null}
  */
 export function formatEquivalent(eq) {
-  const text = EQUIVALENT_TEXT[eq.kind];
   const { low, high, label } = formatBand(eq.count, 'count');
-  const result = (words) => ({ kind: eq.kind, low, high, label: words });
-  if (high === 0) return result('geen meetbare besparing');
-  if (high < 1) return result(`minder dan 1 keer ${text}`);
-  if (low === 0) return result(`tot ${nl(high)} keer ${text}`); // "0 – 3 keer" reads oddly
-  return result(`${label} keer ${text}`);
+  if (high < 1) return null;
+  const text = 'je telefoon opladen';
+  if (low < 1) return { kind: eq.kind, low, high, label: `tot ${nl(high)} keer ${text}` }; // no fractions
+  return { kind: eq.kind, low, high, label: `${label} keer ${text}` };
 }
 
 // --- Presentation: bandwidth ("bandbreedte") ---------------------------------------------------

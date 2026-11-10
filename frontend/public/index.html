@@ -80,7 +80,7 @@
       <section id="tab-hub" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-hub">
         <div class="intro">
           <h2 id="hub-greeting" tabindex="-1">Welkom</h2>
-          <p class="muted">Dit kun je doen om je bestanden op de juiste plek te zetten. Jij beslist altijd zelf: OpruimCoach verplaatst of verwijdert nooit iets zonder jouw akkoord.</p>
+          <p class="muted">Jij beslist: OpruimCoach verplaatst of verwijdert niets zonder jouw akkoord.</p>
         </div>
 
         <section class="panel" aria-labelledby="actions-title">
@@ -98,7 +98,7 @@
           <div class="panel-head">
             <div>
               <h3 class="panel-title" id="hub-impact-title">Wat je acties opleveren</h3>
-              <p class="panel-sub">Geschatte besparing per jaar</p>
+              <p class="panel-sub">Per jaar</p>
             </div>
             <button type="button" class="btn btn-secondary btn-sm" data-open="tab-impact">Bekijk alle impact</button>
           </div>
@@ -118,7 +118,7 @@
         <!-- Verhuizen: two Explorer windows (drag a file onto a team-site folder) + ready list -->
         <section id="sub-move" class="subpanel" role="tabpanel" aria-labelledby="sub-btn-move">
           <div class="board-toolbar">
-            <p class="board-hint"><strong>Sleep een bestand</strong> uit je OneDrive naar de map op de teamsite waar het hoort. Geen muis? Kies "Verhuizen…" bij het bestand.</p>
+            <p class="board-hint"><strong>Sleep een bestand</strong> naar een map op de teamsite, of kies "Verhuizen…".</p>
             <label class="filter-label">
               <span>Toon in OneDrive</span>
               <select id="od-filter" class="sim-select">
@@ -145,7 +145,7 @@
             <div class="panel-head">
               <div>
                 <h3 class="panel-title" id="ready-title">Klaar om te verhuizen</h3>
-                <p class="panel-sub">Gedeelde documenten in je OneDrive die waarschijnlijk bij je team horen. Jij kiest de map.</p>
+                <p class="panel-sub">Gedeelde documenten die bij je team horen</p>
               </div>
             </div>
             <ul id="ready-list" class="file-list"></ul>
@@ -159,7 +159,7 @@
             <div class="panel-head">
               <div>
                 <h3 class="panel-title" id="chains-title">Dubbele kopieën</h3>
-                <p class="panel-sub">Identieke bestanden in je OneDrive. Alleen het opruimen van kopieën bespaart opslag.</p>
+                <p class="panel-sub">Identieke bestanden in je OneDrive</p>
               </div>
             </div>
             <div id="chain-list" class="chain-list"></div>
@@ -172,7 +172,7 @@
             <div class="panel-head">
               <div>
                 <h3 class="panel-title" id="sites-title">Mijn SharePoint-sites</h3>
-                <p class="panel-sub">De teams en sites waar je lid van bent: hier kunnen je bestanden naartoe. Met "Snelkoppeling toevoegen" staat de teammap ook in Mijn bestanden in je OneDrive.</p>
+                <p class="panel-sub">Teams waar je lid van bent</p>
               </div>
             </div>
             <ul id="site-list" class="site-list"></ul>
@@ -201,7 +201,7 @@
         <div class="page-head">
           <button type="button" class="btn-link back-link" data-open="tab-hub">← Terug naar de Actie-hub</button>
           <h2 id="impact-page-title" class="page-title" tabindex="-1">Impact</h2>
-          <p class="muted">Wat de acties van jou, je teams en de hele gemeente samen opleveren.</p>
+          <p class="muted">Wat jij, je teams en de gemeente samen besparen.</p>
         </div>
         <div class="kpis" id="impact-kpis"></div>
 
@@ -209,7 +209,7 @@
           <div class="panel-head">
             <div>
               <h3 class="panel-title" id="metaphor-title">Wat betekent dat in Amsterdam?</h3>
-              <p class="panel-sub">Eerlijke verhoudingen: per jaar, als bandbreedte</p>
+              <p class="panel-sub">Per jaar</p>
             </div>
             <div class="segmented" role="radiogroup" aria-label="Bereik">
               <button type="button" role="radio" aria-checked="true" data-scope="organisation">Gemeente</button>
@@ -217,14 +217,13 @@
             </div>
           </div>
           <div class="metaphors" id="metaphors"></div>
-          <p class="honesty-note">Eerlijk is eerlijk: per bestand zijn dit kleine getallen. De winst zit in de optelsom over duizenden ambtenaren, minder dataverkeer, en dossiers die op de wettelijk juiste plek staan.</p>
         </section>
 
         <section class="panel" aria-labelledby="chart-title">
           <div class="panel-head">
             <div>
               <h3 class="panel-title" id="chart-title">Besparing per team</h3>
-              <p class="panel-sub">Een verhuizing telt mee bij het team waar het document naartoe gaat · gram CO₂ per jaar, van ondergrens tot bovengrens</p>
+              <p class="panel-sub">Per jaar · telt mee bij het team waar het document naartoe gaat</p>
             </div>
             <button type="button" class="btn btn-secondary btn-sm" id="toggle-table" aria-pressed="false">Tabel</button>
           </div>
@@ -248,7 +247,7 @@
         <div class="page-head">
           <button type="button" class="btn-link back-link" data-open="tab-hub">← Terug naar de Actie-hub</button>
           <h2 id="about-page-title" class="page-title" tabindex="-1">Privacy &amp; berekening</h2>
-          <p class="muted">Welke gegevens OpruimCoach gebruikt, welke toestemmingen de app heeft, en hoe we de CO₂-besparing berekenen.</p>
+          <p class="muted">Welke gegevens OpruimCoach gebruikt en hoe we rekenen.</p>
         </div>
         <div class="grid-2">
           <section class="panel prose">
@@ -323,7 +322,6 @@
       <select id="move-folder" class="sim-select"></select>
     </label>
     <p id="move-explain" class="dialog-body"></p>
-    <p id="move-estimate" class="move-estimate"></p>
     <div class="dialog-actions">
       <button type="button" class="btn btn-primary" id="move-ok">Verhuizen</button>
       <button type="button" class="btn btn-secondary" id="move-cancel">Annuleren</button>

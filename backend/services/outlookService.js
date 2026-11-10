@@ -60,7 +60,7 @@ export function createOutlookService({ graph, coefficients: c, telemetry }) {
         message: alert
           ? `Je verstuurt ${names} (${formatMb(sizeMb)}) als bijlage naar ${input.recipientCount} mensen. ` +
             `Elke ontvanger krijgt een eigen kopie: samen ${formatMb(est.duplicate_mb)} in mailboxen (${est.amplification}× opslag). ` +
-            `Deel je liever een link? Dat scheelt ${annual.co2_per_year.label} per jaar (≈ ${annual.co2_per_year.equivalent.label}) en iedereen werkt in dezelfde versie.`
+            `Deel je liever een link? Dat scheelt ${annual.co2_per_year.label} per jaar${annual.co2_per_year.equivalent ? ` (≈ ${annual.co2_per_year.equivalent.label})` : ''} en iedereen werkt in dezelfde versie.`
           : null,
         options: alert
           ? [

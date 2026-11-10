@@ -12,20 +12,11 @@
  */
 
 import { api } from './api.js';
-import { el, append, button, icon, infoButton } from './dom.js';
-import { formatSize, firstName, plural } from './format.js';
-import { co2Amount } from './co2.js';
+import { el, append, button, icon } from './dom.js';
+import { formatSize, firstName, plural, greetingFor } from './format.js';
+import { co2Amount, co2InfoButton } from './co2.js';
 
 const $ = (id) => document.getElementById(id);
-
-/** Explanation behind the "i" of the old-files action (Archiefwet, never "weg mag"). */
-const RETENTION_INFO = () => [
-  el('p', 'info-title', 'Bestanden die lang niet zijn bewerkt'),
-  el('p', '', 'Voor documenten van de gemeente gelden bewaarregels (Archiefwet en selectielijsten). ' +
-    'Sommige documenten moet je lang bewaren, vaak op de teamsite of in het archief.'),
-  el('p', '', 'Bekijk dus per bestand of je het nog nodig hebt voor je werk, en waar het volgens de bewaarregels hoort. ' +
-    'Twijfel je? Vraag het je archiefadviseur (DIV).'),
-];
 
 /**
  * How each action from the API is shown. `title` and `doneTitle` get the count;
@@ -59,17 +50,21 @@ const ACTION_TEXT = {
 };
 
 /** Second line of an action: the saving, or why there is no number. */
-function actionDetail(action) {
+/**
+ * @param {object} action
+ * @param {boolean} isMainTotal the top action of the list: the only place on this
+ *   screen that shows the everyday example
+ */
+function actionDetail(action, isMainTotal) {
   if (action.count === 0) return el('span', 'action-sub', 'Niets te doen');
   switch (action.id) {
     case 'move':
-      return append(el('span', 'action-sub', 'Geschatte besparing: '), co2Amount(action.estimate.co2_per_year));
+      return append(el('span', 'action-sub', 'Geschatte besparing: '), co2Amount(action.estimate.co2_per_year, { example: isMainTotal }));
     case 'duplicates':
       return append(el('span', 'action-sub', `${formatSize(action.storage_freed_mb)} vrij · Geschatte besparing: `),
-        co2Amount(action.estimate.co2_per_year));
+        co2Amount(action.estimate.co2_per_year, { example: isMainTotal }));
     case 'old':
-      return append(el('span', 'action-sub', 'Besparing hangt af van de bewaarregels'),
-        infoButton('Uitleg over bewaarregels', RETENTION_INFO));
+      return el('span', 'action-sub', 'Check eerst de bewaarregels: sommige documenten moet je bewaren');
     case 'shortcut':
       return el('span', 'action-sub', 'Geen directe besparing: je vindt je teambestanden sneller');
     default:
@@ -92,7 +87,7 @@ function sortActions(actions) {
 /** @param {object} ctx shared app context (see app.js) */
 export function createActionHub(ctx) {
   /** One row: icon, title + detail, and the button (or a "done" check). */
-  function renderAction(action) {
+  function renderAction(action, isMainTotal) {
     const text = ACTION_TEXT[action.id];
     if (!text) return null;
     const done = action.count === 0;
@@ -111,37 +106,47 @@ export function createActionHub(ctx) {
 
     return append(el('li', `action-row${done ? ' is-done' : ''}`),
       append(el('span', 'action-icon'), icon(text.icon)),
-      append(el('div', 'action-main'), title, actionDetail(action)),
+      append(el('div', 'action-main'), title, actionDetail(action, isMainTotal)),
       control);
   }
 
-  /** One small tile of the impact summary. */
-  function impactTile(label, co2, sub) {
+  /**
+   * One small tile of the impact summary. Without a saving yet (nothing done, or
+   * suppressed) it shows what you can do instead of "0 gram CO₂".
+   */
+  function impactTile(label, co2, sub, emptyText) {
     return append(el('article', 'hub-impact-tile'),
       el('h4', 'hub-impact-label', label),
-      co2 ? co2Amount(co2, { suffix: ' per jaar', stacked: true }) : el('p', 'muted', 'Niet getoond'),
-      el('p', 'hub-impact-sub', sub));
+      co2 ? co2Amount(co2) : el('p', 'hub-impact-empty', emptyText),
+      co2 ? el('p', 'hub-impact-sub', sub) : null);
   }
 
   /** "Wat je acties opleveren": your own saving and your teams' saving. */
   function renderImpactSummary({ personal, my_teams: myTeams }) {
+    const hasPersonal = personal.actions > 0 && personal.co2_per_year.high > 0;
+    const hasTeams = !myTeams.suppressed && myTeams.migrations > 0;
     $('hub-impact').replaceChildren(
-      impactTile('Jouw bijdrage (alleen voor jou)', personal.co2_per_year,
-        personal.actions ? plural(personal.actions, 'actie', 'acties') : 'Nog geen acties: begin met een actie hierboven.'),
-      myTeams.suppressed
-        ? impactTile('Jouw teams', null, myTeams.reason)
-        : impactTile('Jouw teams', myTeams.co2_per_year,
-          `${plural(myTeams.team_count, 'team', 'teams')} · ${plural(myTeams.migrations, 'document', 'documenten')} naar de teamsite verhuisd`));
+      impactTile('Jouw bijdrage (alleen voor jou)', hasPersonal ? personal.co2_per_year : null,
+        plural(personal.actions, 'actie', 'acties'), 'Nog niets bespaard. Begin met een actie hierboven.'),
+      impactTile('Jouw teams', hasTeams ? myTeams.co2_per_year : null,
+        `${plural(myTeams.migrations, 'document', 'documenten')} naar de teamsite verhuisd`,
+        myTeams.suppressed ? myTeams.reason : 'Nog geen documenten naar je teamsites verhuisd.'));
   }
 
   function renderActions(actions) {
-    const list = $('action-list');
-    list.replaceChildren(...sortActions(actions).map(renderAction).filter(Boolean));
+    const sorted = sortActions(actions);
+    // The everyday example appears once on this screen: on the top action with a saving.
+    const main = sorted.find((a) => a.count > 0 && a.estimate);
+    $('action-list').replaceChildren(...sorted.map((a) => renderAction(a, a === main)).filter(Boolean));
   }
+
+  // One explanation per card: next to the card titles.
+  $('actions-title').after(co2InfoButton());
+  $('hub-impact-title').after(co2InfoButton());
 
   return {
     async load() {
-      $('hub-greeting').textContent = `Hoi ${firstName(ctx.me.user.display_name)} 👋`;
+      $('hub-greeting').textContent = `${greetingFor(new Date())}, ${firstName(ctx.me.user.display_name)}`;
       if (!ctx.me.admin_consent_granted) {
         $('action-list').replaceChildren(el('li', 'empty', 'Er zijn nog geen acties: OpruimCoach heeft eerst toestemming van een beheerder nodig.'));
         $('hub-impact').replaceChildren();

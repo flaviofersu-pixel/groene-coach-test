@@ -12,7 +12,6 @@
 
 import { el, append, fileIcon } from './dom.js';
 import { formatSize, lastEditedLabel } from './format.js';
-import { co2Amount } from './co2.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -59,10 +58,9 @@ function fillFolderSelect(select, tree, folderId) {
  * @param {{ filename: string, size_mb: number, last_modified: string }} options.file
  * @param {object[]} options.tree     team sites with their folders (GET /api/user/sharepoint-tree)
  * @param {number} [options.folderId] preselected folder (the folder the file was dropped on)
- * @param {object} [options.estimate] estimate from the API, when known
  * @returns {Promise<{ siteId: string, folderId: number } | null>} null when cancelled
  */
-export function openMoveDialog({ file, tree, folderId, estimate }) {
+export function openMoveDialog({ file, tree, folderId }) {
   const dialog = $('move-dialog');
   const select = $('move-folder');
   const ok = $('move-ok');
@@ -75,10 +73,6 @@ export function openMoveDialog({ file, tree, folderId, estimate }) {
 
   fillFolderSelect(select, tree, folderId);
 
-  const estimateLine = $('move-estimate');
-  estimateLine.replaceChildren();
-  if (estimate) estimateLine.append('Geschatte besparing: ', co2Amount(estimate.co2_per_year));
-  estimateLine.hidden = !estimate;
 
   /** Keeps the explanation and the button in sync with the chosen folder. */
   const update = () => {

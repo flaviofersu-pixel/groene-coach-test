@@ -63,7 +63,7 @@ function renderResult(decision, resolved) {
 function askSmartAlert(evaluation) {
   const dialog = $('smart-alert');
   $('sa-message').textContent = evaluation.message;
-  $('sa-transfer').textContent = `Eenmalig versturen van alle kopieën kost daarnaast ${evaluation.one_off_transfer.co2.label} aan netwerkenergie (≈ ${evaluation.one_off_transfer.co2.equivalent.label}).`;
+  $('sa-transfer').textContent = `Eenmalig versturen van alle kopieën kost daarnaast ${evaluation.one_off_transfer.co2.label} aan netwerkenergie${evaluation.one_off_transfer.co2.equivalent ? ` (≈ ${evaluation.one_off_transfer.co2.equivalent.label})` : ''}.`;
   return new Promise((resolve) => {
     const finish = (id) => { dialog.close(); resolve(id); };
     $('sa-actions').replaceChildren(...evaluation.options.map((opt, i) =>

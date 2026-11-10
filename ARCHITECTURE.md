@@ -187,11 +187,9 @@ Implementation: [backend/services/co2Calculator.js](backend/services/co2Calculat
 | `delta_sync_reduction` | 0.30 | 0.50 | fraction | One central library with delta-sync instead of per-share syncing |
 | `backup_dedup_reduction` | 0 | 0.30 | fraction | Site-level backup deduplicates versions. **Lower bound 0**: if the backup tool already deduplicates, there is no gain |
 | `mail_copies_per_recipient` | 1 | 1 | copy | Rick van Kersbergen rule |
-| `canal_lamp_power_w` | 40 | 40 | W | LED canal lamp, for the metaphor |
-| `kettle_litre_kwh` | 0.104 | 0.124 | kWh | Everyday example: 1 L water 15→100 °C = 0.099 kWh (physics) ÷ kettle efficiency 0.80–0.95 |
 | `phone_charge_kwh` | 0.014 | 0.024 | kWh | Everyday example: 3,000–5,000 mAh × 3.85 V ÷ charging efficiency ≈ 0.8. Cross-check: US EPA GHG Equivalencies Calculator (2024, ≈ 0.019 kWh), **verify before production** |
 
-**Everyday example.** Every `co2_per_year` in the API carries an `equivalent` (e.g. *"1 – 4 keer je telefoon opladen"*), computed from the same **energy** band, not from CO2, so it holds whatever grid factor is used. Kettle litres are used only when the lower bound is at least one litre; otherwise phone charges. Examples are deliberately small: one person's saving is grams of CO2, and a large example (a car trip) would make it look meaningless. The UI shows the explanation and source behind an "i" button.
+**Everyday example.** Only ONE kind in the whole app: charging a phone (`phone_charge_kwh`), computed from the same **energy** band, not from CO2, so it holds whatever grid factor is used. It appears **once per screen**, on the main total (the top action in the Actie-hub, "Hele gemeente" on Impact), never next to every number. Below one charge the API sends no example at all (no "0,06 keer", no "minder dan 1 keer"); when the lower bound is below 1 the label reads "tot N keer". A single file shows its size in MB instead of grams of CO2; CO2 is only shown on totals. The explanation and source sit behind one "i" button per card.
 
 The engine **recomputes** the derived rows from the inputs, and a unit test asserts that the stored values match. The table therefore cannot silently drift from the code. `GET /api/co2-metrics` returns the table plus the engine's own check.
 
@@ -229,11 +227,11 @@ link instead   = 0 extra copies
 
 The cumulative waste over the `mail_attachment_stats` history is the sum of scenario 3 over all rows. It is shown on the dashboard with the average amplification (≈ 23× in the demo data).
 
-**Metaphors (realistic proportions)**
+**Everyday example (the only comparison in the app)**
 
 ```
-canal-lamp hours = kWh × 1000 / 40 W              ("X – Y lamps burning for one hour")
-cooling kWh      = data-centre kWh × (PUE − 1) / PUE ≈ 15.6 %   (network energy excluded)
+phone charges = kWh ÷ phone_charge_kwh   (low = kWh_low ÷ 0.024, high = kWh_high ÷ 0.014)
+                hidden when high < 1; "tot N keer" when low < 1
 ```
 
 ### 5.4 Worked example
@@ -360,10 +358,10 @@ Security in the browser: a strict CSP (`default-src 'self'`, no inline scripts, 
 
 ## 9. Testing
 
-`npm test` runs **35 automated tests** (Node's built-in test runner):
+`npm test` runs **36 automated tests** (Node's built-in test runner):
 
-- **CO2 engine (14):** the 3.6 g/GB/yr derivation and the consistency of the stored derived rows, "single move = 0 storage", the sync formula, the backup lower bound of 0, active vs. dormant, duplicate removal, the Rick van Kersbergen 20× rule, cumulative waste, metaphors, outward band rounding, the everyday example (phone vs. kettle, honest labels), and fail-loud validation.
-- **Display helpers (2):** plain-Dutch "Laatst bewerkt … geleden".
+- **CO2 engine (13):** the 3.6 g/GB/yr derivation and the consistency of the stored derived rows, "single move = 0 storage", the sync formula, the backup lower bound of 0, active vs. dormant, duplicate removal, the Rick van Kersbergen 20× rule, cumulative waste, metaphors, outward band rounding, the everyday example (phone only, never below one charge), and fail-loud validation.
+- **Display helpers (3):** plain-Dutch "Laatst bewerkt … geleden" and the time-of-day greeting.
 - **API (19):** savings counted for the destination team; moving into a chosen folder (and refusing a folder of another site); 401 for missing, forged and expired tokens; the ready list (destination + reason); the OneDrive list (honest dates, no people counts); the Actie-hub action list; duplicates limited to your own OneDrive; migrate, then 409, then 403 for a foreign file; snooze; clean-up that requires confirmation, recycles without deleting, and can be undone; the DB trigger blocking `DELETE`; mapper idempotency and the explorer view; 403 for a non-member site; Smart Alert amplification and send-anyway; k-anonymous impact without user columns; the coefficient table; input validation; and a separate run **without admin consent** (403 everywhere, banner flag).
 
 ---

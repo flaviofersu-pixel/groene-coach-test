@@ -1,20 +1,22 @@
 /**
  * @file co2.js
- * @description Shows a CO2 amount the same way everywhere:
+ * @description Shows a CO2 amount the same way everywhere.
  *
- *    3 – 5 gram CO₂ per jaar  ≈ 1 – 4 keer je telefoon opladen  (i)
- *
- * The band and the everyday example both come ready-made from the API
- * (`co2_per_year.label` and `co2_per_year.equivalent.label`). The longer
- * explanation sits behind the small "i" button, so the screens stay short.
- * The numbers in that explanation come from the live `co2_metrics` table.
+ * Rules (from the user review, to keep the screens calm):
+ *  - CO2 is only shown on TOTALS; a single file shows its size in MB instead.
+ *  - The everyday example ("≈ 2 – 5 keer je telefoon opladen") appears ONCE per
+ *    screen, on the main total, via `{ example: true }`. Below one charge the API
+ *    sends no example at all, and then nothing is shown.
+ *  - At most one "i" button per card: amounts have none by default; a card adds
+ *    one with co2InfoButton().
+ * The numbers in the explanation come from the live table of calculation factors.
  */
 
 import { api } from './api.js';
 import { el, append, infoButton } from './dom.js';
 import { formatNumber } from './format.js';
 
-/** co2_metrics rows by key, filled once by loadCo2Factors(). */
+/** Calculation factors by key, filled once by loadCo2Factors(). */
 let factors = {};
 
 /** Loads the calculation factors (public endpoint, no personal data). Call once at start-up. */
@@ -36,62 +38,52 @@ function factorRange(key) {
     : `${formatNumber(f.value_low, 3)} – ${formatNumber(f.value_high, 3)} ${f.unit}`;
 }
 
-/** Explanation paragraph for one kind of everyday example. */
-function exampleExplanation(kind) {
-  const key = kind === 'kettle' ? 'kettle_litre_kwh' : 'phone_charge_kwh';
-  const f = factors[key];
-  const what = kind === 'kettle' ? '1 liter water koken in een waterkoker' : 'je telefoon een keer helemaal opladen';
-  return append(el('div'),
-    el('p', '', `Het voorbeeld: ${what} kost ${factorRange(key) || 'een kleine hoeveelheid stroom'}. ` +
-      'We kiezen bewust een klein voorbeeld, omdat de besparing van een persoon ook klein is.'),
-    f ? el('p', 'info-source', `Bron: ${f.source}.`) : null);
-}
-
-/** The full "how do we calculate this" explanation shown in the popover. */
-export function co2Explanation(kind = 'phone') {
+/** The "how do we calculate this" explanation shown in the popover. */
+export function co2Explanation() {
   const grid = factors.grid_emission_factor;
+  const phone = factors.phone_charge_kwh;
   return [
     el('p', 'info-title', 'Hoe rekenen we?'),
     el('p', '', 'We schatten hoeveel stroom het scheelt in het datacenter en op het netwerk als een bestand op de juiste plek staat. ' +
       `Die stroom rekenen we om naar CO₂ met ${grid ? `${formatNumber(grid.value_low, 0)} gram CO₂ per kWh` : 'de Nederlandse stroommix'}.`),
-    el('p', '', 'Omdat dit een schatting is, tonen we altijd een bandbreedte: van … tot …'),
-    exampleExplanation(kind),
-    el('p', 'info-source', 'Alle factoren staan in het tabblad "Privacy & berekening".'),
-  ];
+    el('p', '', 'Het is een schatting, daarom tonen we een onder- en bovengrens.'),
+    el('p', '', `Je telefoon een keer opladen kost ${factorRange('phone_charge_kwh') || 'een kleine hoeveelheid stroom'}. ` +
+      'Is de besparing minder dan een keer opladen, dan laten we het voorbeeld weg.'),
+    phone ? el('p', 'info-source', `Bron: ${phone.source}.`) : null,
+  ].filter(Boolean);
 }
 
-/** Just the "i" button with the explanation, e.g. for a panel header. */
-export function co2InfoButton(kind = 'phone') {
-  return infoButton('Uitleg over de CO₂-berekening', () => co2Explanation(kind));
+/** The "i" button with the explanation; use at most one per card. */
+export function co2InfoButton() {
+  return infoButton('Uitleg over de CO₂-berekening', () => co2Explanation());
 }
 
 /**
- * A CO2 amount with its everyday example (and optionally the "i" button).
- * @param {{ label: string, equivalent?: { kind: string, label: string } }} co2 a `co2_per_year` object from the API
- * @param {{ suffix?: string, info?: boolean, stacked?: boolean }} [options]
- *   suffix  text after the amount (default " per jaar")
- *   info    show the "i" button (default true)
- *   stacked put the example on its own line (for narrow list columns)
- */
-export function co2Amount(co2, { suffix = ' per jaar', info = true, stacked = false } = {}) {
-  const amount = el('span', `co2${stacked ? ' co2--stacked' : ''}`);
-  append(amount, el('strong', 'co2-value', `${co2.label}${suffix}`));
-  if (info) amount.append(co2InfoButton(co2.equivalent?.kind));
-  if (co2.equivalent) amount.append(co2Example(co2.equivalent));
-  return amount;
-}
-
-
-/**
- * The everyday example as a clearly visible green label, e.g.
- *   [ ≈ 1 – 4 keer je telefoon opladen]
- * Always shown on screen, so nobody has to open the "i" to see what it means.
- * @param {{ kind: string, label: string }} equivalent
+ * The everyday example as a green label, e.g. [≈ 1 – 4 keer je telefoon opladen].
+ * @param {{ label: string } | null} equivalent
+ * @returns {HTMLElement | null} null when there is no example (less than one charge)
  */
 export function co2Example(equivalent) {
+  if (!equivalent) return null;
   return append(el('span', 'co2-eq'), el('span', '', `≈ ${equivalent.label}`));
 }
 
-/** Plain-text version for toasts, tooltips and aria-labels. */
-export const co2Text = (co2, suffix = ' per jaar') =>
-  `${co2.label}${suffix}${co2.equivalent ? ` (≈ ${co2.equivalent.label})` : ''}`;
+/**
+ * A CO2 total.
+ * @param {{ label: string, equivalent?: { label: string } | null }} co2 a `co2_per_year` object from the API
+ * @param {{ suffix?: string, info?: boolean, stacked?: boolean, example?: boolean }} [options]
+ *   suffix  text after the amount (default " per jaar")
+ *   info    add the "i" button (default false: at most one per card)
+ *   stacked put the example on its own line
+ *   example show the everyday example (default false: only on the main total of a screen)
+ */
+export function co2Amount(co2, { suffix = ' per jaar', info = false, stacked = false, example = false } = {}) {
+  const amount = el('span', `co2${stacked ? ' co2--stacked' : ''}`);
+  append(amount, el('strong', 'co2-value', `${co2.label}${suffix}`));
+  if (info) amount.append(co2InfoButton());
+  if (example) append(amount, co2Example(co2.equivalent));
+  return amount;
+}
+
+/** Plain-text version for tooltips and aria-labels (never with the example). */
+export const co2Text = (co2, suffix = ' per jaar') => `${co2.label}${suffix}`;

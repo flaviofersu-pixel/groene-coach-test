@@ -82,7 +82,7 @@ export function isEmpty(db) {
  * column, new required CO2 factor). The server then rebuilds the DEMO database
  * on start. SQLite keeps the number in the file header (`PRAGMA user_version`).
  */
-export const DEMO_DATA_VERSION = 3;
+export const DEMO_DATA_VERSION = 4;
 
 /** Stamps the database with the current demo data version (called by the seed). */
 export function markDemoDataVersion(db) {
