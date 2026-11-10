@@ -1,19 +1,20 @@
 /**
  * @file moveBoard.js
- * @description Bestanden part "Verhuizen": two windows that look like Windows
- * Explorer, side by side.
+ * @description Bestanden part "Verhuizen". One place per file, in this order:
  *
- *   left   "Jouw OneDrive": your folders and files (draggable)
- *   right  "Je teamsites": every team site with the folders of its library
+ *   1. "Klaar om te verhuizen"  the main list: shared documents that belong to the
+ *                               team, each with a suggested folder ("Voorstel:
+ *                               Wonen › Documenten › Beleid").
+ *   2. "Eerst nakijken"         files not edited for more than a year: check the
+ *                               retention rules before moving them.
+ *   3. "Zelf slepen"            (collapsed) two file panels for people who want to
+ *                               drag: the OTHER OneDrive files on the left, the
+ *                               team sites with their folders on the right.
  *
- * The user drags a file onto the FOLDER where it belongs; the user chooses,
- * because documents belong in a specific folder. A closed site or folder opens
- * by itself when you hover over it with a file, as in Windows.
- * Keyboard and screen-reader users use the "Verhuizen…" button on every file,
- * which opens the same dialog with a folder choice (accessibility).
- *
- * Below the windows: "Klaar om te verhuizen", shared documents that probably
- * belong to the team, with a suggested team site and a one-line reason.
+ * A file appears in only one of these places. While you drag a file, its
+ * suggested folder is highlighted on the right; a closed site/folder opens when
+ * you hover over it. Keyboard users use "Verhuizen…", which opens the same
+ * dialog with the suggested folder preselected (accessibility).
  *
  * TODO(teams): a real move from OneDrive to a SharePoint library is a move between
  * two drives; see "Open risks for the Teams version" in ARCHITECTURE.md.
@@ -34,17 +35,7 @@ const DRAG_TYPE = 'application/x-opruimcoach-file';
 /** How long (ms) you hover over a closed site/folder with a file before it opens. */
 const HOVER_OPEN_MS = 600;
 
-/** What each filter of the OneDrive window shows. */
-const FILTERS = {
-  all: { test: () => true, note: '' },
-  shared: { test: (f) => f.is_shared, note: 'Gedeelde bestanden horen vaak bij je team, op de teamsite.' },
-  old: {
-    test: (f) => f.is_old,
-    note: 'Deze bestanden zijn al meer dan een jaar niet bewerkt. Bekijk of je ze nog nodig hebt, en waar ze volgens de bewaarregels (Archiefwet) horen. Twijfel je? Vraag het je archiefadviseur.',
-  },
-};
-
-/** Explanation behind the "i" next to the OneDrive window (honest "last edited"). */
+/** Explanation behind the "i" next to the OneDrive panel (honest "last edited"). */
 const LAST_EDITED_INFO = () => [
   el('p', 'info-title', 'Laatst bewerkt'),
   el('p', '', 'We tonen wanneer een bestand voor het laatst is gewijzigd. ' +
@@ -53,13 +44,42 @@ const LAST_EDITED_INFO = () => [
 
 /** @param {object} ctx shared app context (see app.js) */
 export function createMoveBoard(ctx) {
-  const state = { ready: [], snoozedCount: 0, oneDrive: [], tree: [], filter: 'all' };
+  const state = {
+    ready: [],      // 1. shared, recently edited: ready to move
+    check: [],      // 2. not edited for over a year: check the retention rules first
+    others: [],     // 3. every other OneDrive file (only in "Zelf slepen")
+    tree: [],       // team sites with their folders
+    snoozedCount: 0,
+  };
   /** The last move, so the destination folder can be opened and the file marked "Net verhuisd". */
   let lastMove = null;
+  /** Folder id -> its <details> in the SharePoint panel (for highlighting the suggestion). */
+  const folderElements = new Map();
+
+  // --- Helpers -------------------------------------------------------------------------
+
+  /** Finds a folder and its site in the SharePoint tree. */
+  function findFolder(folderId) {
+    for (const site of state.tree) {
+      const folder = site.folders.find((f) => f.id === folderId);
+      if (folder) return { site, folder };
+    }
+    return null;
+  }
+
+  /** "Voorstel: Wonen › Documenten › Beleid" for a file with a suggested folder. */
+  function suggestionLine(file) {
+    const found = file.suggested_folder ? findFolder(file.suggested_folder.id) : null;
+    if (!found) return null;
+    return append(el('div', 'ready-target'), icon('shortcut'), el('span', '', `Voorstel: ${folderLabel(found.site, found.folder)}`));
+  }
+
+  const allFiles = () => [...state.ready, ...state.check, ...state.others];
+  const fileById = (id) => allFiles().find((f) => f.id === id);
 
   // --- Moving -----------------------------------------------------------------------
 
-  /** Asks for the folder (and confirmation) in the dialog, then moves the file. */
+  /** Opens the dialog (suggested or dropped-on folder preselected), then moves the file. */
   async function move(file, { folderId } = {}) {
     const choice = await openMoveDialog({ file, tree: state.tree, folderId });
     if (!choice) return;
@@ -88,10 +108,15 @@ export function createMoveBoard(ctx) {
     renderReady();
   }
 
-  /** Finds a OneDrive file by id (from the window or the ready list). */
-  const fileById = (id) => state.oneDrive.find((f) => f.id === id) ?? state.ready.find((f) => f.id === id);
-
   // --- Drag and drop -----------------------------------------------------------------
+
+  /** While dragging, the suggested folder is highlighted (and its site opened). */
+  function highlightSuggestion(file, on) {
+    const details = file.suggested_folder ? folderElements.get(file.suggested_folder.id) : null;
+    if (!details) return;
+    details.classList.toggle('is-suggested', on);
+    if (on) details.closest('details:not(.sp-folder)')?.setAttribute('open', '');
+  }
 
   function makeDraggable(row, file) {
     row.draggable = true;
@@ -99,11 +124,14 @@ export function createMoveBoard(ctx) {
       e.dataTransfer.setData(DRAG_TYPE, String(file.id));
       e.dataTransfer.effectAllowed = 'move';
       row.classList.add('is-dragging');
+      $('self-drag').open = true; // the folders to drop on are in "Zelf slepen"
       document.body.classList.add('is-dragging-file'); // CSS shows every folder as a drop zone
+      highlightSuggestion(file, true);
     });
     row.addEventListener('dragend', () => {
       row.classList.remove('is-dragging');
       document.body.classList.remove('is-dragging-file');
+      highlightSuggestion(file, false);
     });
   }
 
@@ -145,13 +173,57 @@ export function createMoveBoard(ctx) {
     openOnHover(details);
   }
 
-  // --- Left window: OneDrive ---------------------------------------------------------
+  // --- 1. Klaar om te verhuizen -----------------------------------------------------------
 
-  /** One draggable file row with "Laatst bewerkt", tags and the keyboard alternative. */
+  function readyRow(file) {
+    const row = append(el('li', 'file-row ready-row'),
+      fileIcon(file.filename),
+      append(el('div', 'file-row-main'),
+        el('div', 'file-row-name', file.filename),
+        el('div', 'file-row-meta', `${lastEditedLabel(file.last_modified)} · ${formatSize(file.size_mb)} · map ${file.folder}`),
+        el('div', 'ready-reason', file.reason),
+        suggestionLine(file)),
+      append(el('div', 'row-actions'),
+        button('Verhuizen…', 'btn btn-primary btn-sm', () => move(file)),
+        button('Nu niet', 'btn btn-secondary btn-sm', () => snooze(file))));
+    makeDraggable(row, file);
+    return row;
+  }
+
+  function renderReady() {
+    const list = $('ready-list');
+    list.replaceChildren(...state.ready.map(readyRow));
+    if (state.ready.length === 0) list.append(el('li', 'empty', 'Er staan geen gedeelde documenten meer in je OneDrive die bij je team horen. Dank je wel!'));
+    const note = $('snoozed-note');
+    note.hidden = state.snoozedCount === 0;
+    note.textContent = `${plural(state.snoozedCount, 'bestand', 'bestanden')} tijdelijk verborgen omdat je "Nu niet" koos.`;
+  }
+
+  // --- 2. Eerst nakijken (lang niet bewerkt) -----------------------------------------------
+
+  function checkRow(file) {
+    const row = append(el('li', 'file-row ready-row'),
+      fileIcon(file.filename),
+      append(el('div', 'file-row-main'),
+        el('div', 'file-row-name', file.filename),
+        el('div', 'file-row-meta', `${lastEditedLabel(file.last_modified)} · ${formatSize(file.size_mb)} · map ${file.folder}`),
+        suggestionLine(file)),
+      // Secondary on purpose: first check, then (maybe) move.
+      append(el('div', 'row-actions'), button('Verhuizen…', 'btn btn-secondary btn-sm', () => move(file))));
+    makeDraggable(row, file);
+    return row;
+  }
+
+  function renderCheck() {
+    $('check-panel').hidden = state.check.length === 0;
+    $('check-list').replaceChildren(...state.check.map(checkRow));
+  }
+
+  // --- 3. Zelf slepen: left panel (the other OneDrive files) -------------------------------
+
   function oneDriveFileRow(file) {
     const tags = append(el('span', 'file-tags'),
       file.is_shared ? el('span', 'pill pill--muted', 'Gedeeld bestand') : null,
-      file.is_old ? el('span', 'pill pill--warning', 'Lang niet bewerkt') : null,
       file.has_identical_copy ? el('span', 'pill pill--muted', 'Heeft een kopie') : null);
     const row = append(el('div', 'tree-row is-file od-file'),
       fileIcon(file.filename),
@@ -166,35 +238,27 @@ export function createMoveBoard(ctx) {
   }
 
   function renderOneDrive() {
-    const filter = FILTERS[state.filter] ?? FILTERS.all;
-    $('od-filter').value = state.filter;
-    const note = $('od-filter-note');
-    note.textContent = filter.note;
-    note.hidden = !filter.note;
-
     // Group files by their OneDrive folder, like Explorer shows them.
     const folders = new Map();
-    for (const file of state.oneDrive) {
+    for (const file of state.others) {
       if (!folders.has(file.folder)) folders.set(file.folder, []);
       folders.get(file.folder).push(file);
     }
-
     const tree = el('ul', 'tree');
     tree.setAttribute('aria-label', 'Jouw OneDrive');
     for (const [name, files] of [...folders].sort(([a], [b]) => a.localeCompare(b, 'nl'))) {
-      const visible = files.filter(filter.test);
-      const node = folderNode({ name, count: visible.length, open: visible.length > 0 });
-      node.list.append(...visible.map(oneDriveFileRow));
-      if (visible.length === 0) node.list.append(el('li', 'tree-more', 'geen bestanden bij deze keuze'));
+      const node = folderNode({ name, count: files.length, open: true });
+      node.list.append(...files.map(oneDriveFileRow));
       tree.append(node.li);
     }
-    if (folders.size === 0) tree.append(el('li', 'tree-more', 'Geen bestanden in je OneDrive.'));
+    if (folders.size === 0) tree.append(el('li', 'tree-more', 'Geen andere bestanden in je OneDrive.'));
     renderExplorerWindow($('od-window'), 'OneDrive - Gemeente Amsterdam', tree);
   }
 
-  // --- Right window: team sites with folders -------------------------------------------
+  // --- 3. Zelf slepen: right panel (team sites with folders) -------------------------------
 
   function renderSharePoint() {
+    folderElements.clear();
     const tree = el('ul', 'tree');
     tree.setAttribute('aria-label', 'Je teamsites op SharePoint');
     state.tree.forEach((site, index) => {
@@ -206,7 +270,7 @@ export function createMoveBoard(ctx) {
       for (const folder of site.folders) {
         const isDestination = folder.id === lastMove?.folderId;
         const node = folderNode({ name: folder.name, count: folder.files.length + folder.more, extraClass: 'sp-folder', open: isDestination });
-        node.row.append(el('span', 'drop-hint', 'Zet hier neer'));
+        node.row.append(el('span', 'suggest-hint', 'Voorstel'), el('span', 'drop-hint', 'Zet hier neer'));
         for (const f of folder.files) {
           const justMoved = isDestination && f.id === lastMove.fileId;
           node.list.append(append(el('li'), append(el('div', `tree-row is-file sp-file${justMoved ? ' is-just-moved' : ''}`),
@@ -217,6 +281,7 @@ export function createMoveBoard(ctx) {
         if (folder.more) node.list.append(el('li', 'tree-more', `… en ${folder.more} meer`));
         if (folder.files.length === 0) node.list.append(el('li', 'tree-more', 'leeg'));
         makeDropFolder(node.details, folder);
+        folderElements.set(folder.id, node.details);
         siteNode.list.append(node.li);
       }
       tree.append(siteNode.li);
@@ -225,64 +290,34 @@ export function createMoveBoard(ctx) {
     renderExplorerWindow($('sp-window'), 'SharePoint - Gemeente Amsterdam', tree, { addressIcon: 'shortcut' });
   }
 
-  // --- Below: ready to move ----------------------------------------------------------------
-
-  function readyRow(file) {
-    const row = append(el('li', 'file-row ready-row'),
-      fileIcon(file.filename),
-      append(el('div', 'file-row-main'),
-        el('div', 'file-row-name', file.filename),
-        el('div', 'file-row-meta', `${lastEditedLabel(file.last_modified)} · ${formatSize(file.size_mb)} · map ${file.folder}`),
-        el('div', 'ready-reason', file.reason),
-        append(el('div', 'ready-target'), icon('shortcut'),
-          el('span', '', `Voorstel: teamsite ${siteLabel(file.suggested_site)} (jij kiest de map)`))),
-      append(el('div', 'ready-side'),
-        append(el('div', 'row-actions'),
-          button('Verhuizen…', 'btn btn-primary btn-sm', () => move(file)),
-          button('Nu niet', 'btn btn-secondary btn-sm', () => snooze(file)))));
-    makeDraggable(row, file);
-    return row;
-  }
-
-  function renderReady() {
-    const list = $('ready-list');
-    list.replaceChildren(...state.ready.map(readyRow));
-    if (state.ready.length === 0) list.append(el('li', 'empty', 'Er staan geen gedeelde documenten meer in je OneDrive die bij je team horen. Dank je wel!'));
-    const note = $('snoozed-note');
-    note.hidden = state.snoozedCount === 0;
-    note.textContent = `${plural(state.snoozedCount, 'bestand', 'bestanden')} tijdelijk verborgen omdat je "Nu niet" koos.`;
-  }
-
-  // One-time wiring: filter dropdown and the "Laatst bewerkt" explanation.
-  $('od-filter').addEventListener('change', (e) => { state.filter = e.target.value; renderOneDrive(); });
+  // One-time wiring: the "Laatst bewerkt" explanation (one per card).
   $('od-title').after(infoButton('Uitleg over "Laatst bewerkt"', LAST_EDITED_INFO));
 
   return {
-    /**
-     * Jump to a filter from the Actie-hub: 'ready' scrolls to the ready list,
-     * 'old' / 'shared' set the OneDrive filter and scroll to the windows.
-     */
+    /** Jump from the Actie-hub: 'ready' -> the main list, 'old' -> "Eerst nakijken". */
     applyFilter(filter) {
-      if (filter && filter in FILTERS) state.filter = filter;
-      if (state.oneDrive.length) renderOneDrive();
-      const target = filter === 'ready' ? $('ready-panel') : filter ? $('board') : null;
-      if (target) requestAnimationFrame(() => target.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+      const target = filter === 'old' ? $('check-panel') : filter === 'ready' ? $('ready-panel') : null;
+      if (target && !target.hidden) requestAnimationFrame(() => target.scrollIntoView({ behavior: 'smooth', block: 'start' }));
     },
 
     async load() {
       if (!ctx.me.admin_consent_granted) {
-        state.ready = []; state.oneDrive = []; state.tree = [];
-        renderOneDrive(); renderSharePoint(); renderReady();
+        Object.assign(state, { ready: [], check: [], others: [], tree: [] });
+        renderSharePoint(); renderReady(); renderCheck(); renderOneDrive();
         return;
       }
       const [scan, oneDrive, sharePoint] = await Promise.all([api.scan(), api.oneDrive(), api.sharePointTree()]);
-      state.ready = scan.files;
-      state.snoozedCount = scan.snoozed_count;
-      state.oneDrive = oneDrive.files;
       state.tree = sharePoint.sites;
-      renderOneDrive();
-      renderSharePoint();
+      state.snoozedCount = scan.snoozed_count;
+      // Every file in exactly one place: ready (shared, recent) / check (old) / others.
+      state.ready = scan.files.filter((f) => !f.is_old);
+      state.check = oneDrive.files.filter((f) => f.is_old);
+      const listed = new Set([...state.ready, ...state.check].map((f) => f.id));
+      state.others = oneDrive.files.filter((f) => !listed.has(f.id));
+      renderSharePoint(); // first: the suggestion lines look up folder names in the tree
       renderReady();
+      renderCheck();
+      renderOneDrive();
     },
   };
 }

@@ -79,6 +79,7 @@ describe('OpruimCoach API', () => {
       assert.equal(f.estimate.storage_freed_mb, 0); // single move: no storage saving
       assert.equal(f.estimate.breakdown.storage.label, '0 gram CO₂');
       assert.equal(f.suggested_site.display_name, 'Wonen'); // own team site
+      assert.ok(f.suggested_folder && typeof f.suggested_folder.name === 'string'); // a specific folder
       assert.ok(f.reason.length > 0 && !/weg mag/i.test(f.reason));
     }
     const own = t.db.prepare("SELECT id FROM files WHERE owner_id = 'u01'").all().map((r) => r.id);
@@ -177,6 +178,9 @@ describe('OpruimCoach API', () => {
     const byId = Object.fromEntries(body.actions.map((a) => [a.id, a]));
     assert.deepEqual(Object.keys(byId).sort(), ['duplicates', 'move', 'old', 'shortcut']);
     assert.ok(byId.move.count > 0);
+    // Old files are checked first (retention rules), so they never count as "ready to move".
+    const scan = (await t.call('GET', '/api/files/scan-onedrive', { token: lotte })).body;
+    assert.equal(byId.move.count, scan.files.filter((f) => !f.is_old).length);
     assert.match(byId.move.estimate.co2_per_year.label, /CO₂/);
     assert.ok(byId.duplicates.count >= 1); // two own copies of Begroting_2027_concept.xlsx
     assert.equal(byId.old.estimate, null); // depends on the retention rules: no figure

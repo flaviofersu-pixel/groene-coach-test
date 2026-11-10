@@ -24,6 +24,7 @@ import { inTransaction } from '../db/database.js';
 import { HttpError } from '../errors.js';
 import { estimateMigration, estimateDuplicateRemoval, addBands, band } from './co2Calculator.js';
 import { presentEstimate, round } from './present.js';
+import { suggestFolder } from './folderSuggestion.js';
 
 const DAY_MS = 86_400_000;
 
@@ -43,6 +44,7 @@ export function createActionHubService({ db, graph, coefficients: c, telemetry, 
     clearSnooze: db.prepare('DELETE FROM snoozes WHERE user_id = ? AND file_id = ?'),
     departmentSite: db.prepare('SELECT id FROM sharepoint_sites WHERE department = ?'),
     siteById: db.prepare('SELECT id, display_name, library_name FROM sharepoint_sites WHERE id = ?'),
+    siteFolders: db.prepare('SELECT id, name FROM sharepoint_folders WHERE site_id = ? ORDER BY name'),
     memberSiteIds: db.prepare('SELECT site_id FROM site_memberships WHERE user_id = ?'),
     unmappedSites: db.prepare(`
       SELECT COUNT(*) AS n FROM site_memberships m
@@ -105,6 +107,14 @@ export function createActionHubService({ db, graph, coefficients: c, telemetry, 
     return { id: site.id, display_name: site.display_name, library_name: site.library_name };
   }
 
+  /**
+   * Suggested destination (site + folder) for one file, from the demo folder rules.
+   * @returns {{ site: object, folder: { id: number, name: string, matched: boolean } | null }}
+   */
+  function suggestedDestination(site, filename) {
+    return { site, folder: suggestFolder(filename, q.siteFolders.all(site.id)) };
+  }
+
   /** One plain-Dutch line explaining why this file belongs on the team site. */
   function moveReason(activity) {
     return activity === 'active'
@@ -115,6 +125,7 @@ export function createActionHubService({ db, graph, coefficients: c, telemetry, 
   /** Shapes a file plus its migration estimate for the client. */
   function candidateDto(file, at, actor) {
     const est = estimateMigration(file, c, at);
+    const destination = suggestedDestination(suggestedSite(actor), file.filename);
     return {
       id: file.id,
       filename: file.filename,
@@ -124,7 +135,10 @@ export function createActionHubService({ db, graph, coefficients: c, telemetry, 
       last_modified: file.last_modified,
       folder: file.folder_name,
       activity: est.activity,
-      suggested_site: suggestedSite(actor),
+      suggested_site: destination.site,
+      suggested_folder: destination.folder,
+      // Not edited for a long time: first check the retention rules before moving.
+      is_old: daysSince(file.last_modified, at) > config.oldFileDays,
       reason: moveReason(est.activity),
       estimate: {
         ...presentEstimate(est.total, c),
@@ -235,6 +249,7 @@ export function createActionHubService({ db, graph, coefficients: c, telemetry, 
       const files = graph.listMyOneDriveFiles(actor).filter((f) => f.status === 'active');
       const hashCount = new Map();
       for (const f of files) hashCount.set(f.content_hash, (hashCount.get(f.content_hash) ?? 0) + 1);
+      const site = suggestedSite(actor);
 
       return {
         old_file_days: config.oldFileDays,
@@ -249,6 +264,7 @@ export function createActionHubService({ db, graph, coefficients: c, telemetry, 
             is_move_candidate: f.times_shared > config.shareThreshold,
             is_old: daysSince(f.last_modified, at) > config.oldFileDays,
             has_identical_copy: hashCount.get(f.content_hash) > 1,
+            suggested_folder: suggestedDestination(site, f.filename).folder,
           }))
           .sort((a, b) => a.filename.localeCompare(b.filename, 'nl')),
       };
@@ -260,7 +276,8 @@ export function createActionHubService({ db, graph, coefficients: c, telemetry, 
      */
     actionSummary(actor) {
       const at = now();
-      const { open } = moveCandidates(actor, at);
+      // Old files are not "ready to move": they are checked first (retention rules).
+      const open = moveCandidates(actor, at).open.filter((f) => daysSince(f.last_modified, at) <= config.oldFileDays);
       const moveTotal = sumEstimates(open.map((f) => estimateMigration(f, c, at).total));
 
       const chains = q.chainHashes.all({ me: actor.sub }).map((r) => analyseChain(actor, r.content_hash));

@@ -30,23 +30,43 @@ function findFolder(tree, folderId) {
   return null;
 }
 
-/** The plain-Dutch explanation for the chosen destination. */
-function explanation(choice) {
-  if (!choice) return 'Kies de map op de teamsite waar dit document hoort.';
-  const { site, folder } = choice;
-  return `Dit document hoort bij je team. Op de teamsite ${site.display_name} kunnen collega's erbij, ` +
-    'en wordt het bewaard volgens de bewaarregels van de gemeente. ' +
-    `In je OneDrive staat het daarna niet meer: je vindt het in ${folderLabel(site, folder)}.`;
+/** The benefits of moving, in words that matter to an employee (shown before any CO2). */
+export const MOVE_BENEFITS = ['Je team kan erbij', 'Bewaard volgens de bewaarregels'];
+
+/** Small neutral labels, e.g. [Je team kan erbij] [Bewaard volgens de bewaarregels]. */
+export function benefitTags(benefits) {
+  return append(el('span', 'benefits'), ...benefits.map((b) => el('span', 'benefit', b)));
 }
 
-/** Fills the folder dropdown: one group per team site, one option per folder. */
-function fillFolderSelect(select, tree, folderId) {
+/** The blue explanation: what moving means, why, and where the file goes (by name). */
+function explanation(choice) {
+  const box = el('div', 'move-explainer');
+  if (!choice) {
+    append(box, el('strong', '', 'Verhuizen naar SharePoint: '), 'kies de map op de teamsite waar dit document hoort.');
+    return box;
+  }
+  const { site, folder } = choice;
+  return append(box,
+    el('strong', '', 'Verhuizen naar SharePoint: '),
+    `dit document hoort bij je team. Op de teamsite ${site.display_name} kunnen collega's erbij, ` +
+    'en wordt het bewaard volgens de bewaarregels van de gemeente. ' +
+    `In je OneDrive staat het daarna niet meer: je vindt het in ${folderLabel(site, folder)}.`);
+}
+
+/**
+ * Fills the folder dropdown: one group per team site, one option per folder.
+ * The suggested folder is marked "(voorstel)".
+ */
+function fillFolderSelect(select, tree, folderId, suggestedId) {
   const placeholder = new Option('Kies een map…', '', !folderId, !folderId);
   placeholder.disabled = true;
   const groups = tree.map((site) => {
     const group = document.createElement('optgroup');
     group.label = siteLabel(site);
-    for (const folder of site.folders) group.append(new Option(folder.name, String(folder.id), false, folder.id === folderId));
+    for (const folder of site.folders) {
+      const label = folder.id === suggestedId ? `${folder.name} (voorstel)` : folder.name;
+      group.append(new Option(label, String(folder.id), false, folder.id === folderId));
+    }
     return group;
   });
   select.replaceChildren(placeholder, ...groups);
@@ -57,10 +77,13 @@ function fillFolderSelect(select, tree, folderId) {
  * @param {object} options
  * @param {{ filename: string, size_mb: number, last_modified: string }} options.file
  * @param {object[]} options.tree     team sites with their folders (GET /api/user/sharepoint-tree)
- * @param {number} [options.folderId] preselected folder (the folder the file was dropped on)
+ * @param {number} [options.folderId] preselected folder: the folder the file was dropped
+ *   on, or else the suggested folder (file.suggested_folder)
  * @returns {Promise<{ siteId: string, folderId: number } | null>} null when cancelled
  */
 export function openMoveDialog({ file, tree, folderId }) {
+  const suggestedId = file.suggested_folder?.id;
+  const preselected = folderId ?? suggestedId;
   const dialog = $('move-dialog');
   const select = $('move-folder');
   const ok = $('move-ok');
@@ -71,13 +94,13 @@ export function openMoveDialog({ file, tree, folderId }) {
       el('div', 'file-row-name', file.filename),
       el('div', 'file-row-meta', `${lastEditedLabel(file.last_modified)} · ${formatSize(file.size_mb)}`))));
 
-  fillFolderSelect(select, tree, folderId);
-
+  fillFolderSelect(select, tree, preselected, suggestedId);
+  $('move-benefits').replaceChildren(benefitTags(MOVE_BENEFITS));
 
   /** Keeps the explanation and the button in sync with the chosen folder. */
   const update = () => {
     const choice = select.value ? findFolder(tree, Number(select.value)) : null;
-    $('move-explain').textContent = explanation(choice);
+    $('move-explain').replaceChildren(explanation(choice));
     ok.disabled = !choice;
     ok.textContent = choice ? `Verhuis naar ${choice.folder.name}` : 'Verhuizen';
   };

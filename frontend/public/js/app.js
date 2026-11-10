@@ -13,6 +13,7 @@ import { createActionHub } from './actionHub.js';
 import { createExplorer } from './explorer.js';
 import { createImpact } from './impact.js';
 import { createAbout } from './about.js';
+import { createPreview } from './preview.js';
 import { loadCo2Factors } from './co2.js';
 
 const $ = (id) => document.getElementById(id);
@@ -43,6 +44,7 @@ const views = {
   'tab-explorer': createExplorer(ctx),
   'tab-impact': createImpact(ctx),
   'tab-about': createAbout(ctx),
+  'tab-preview': createPreview(ctx), // demo page "Voor en na", opened from the Demo menu
 };
 for (const view of Object.values(views)) view.stale = true;
 
@@ -63,8 +65,8 @@ async function loadView(id) {
 const loadActive = () => loadView(activeTab);
 
 /**
- * Shows one page. Actie-hub and Bestanden are tabs at the top; Impact and
- * Privacy & berekening are pages opened from the footer (no tab button).
+ * Shows one page. Actie-hub, Bestanden and Impact are tabs at the top;
+ * Privacy & berekening (footer) and Voor en na (Demo menu) are pages without a tab button.
  * @param {string} id panel id, e.g. 'tab-explorer'
  * @param {{ focus?: boolean, focusHeading?: boolean, view?: string, filter?: string }} [options]
  *   focus        move keyboard focus to the tab button (arrow-key navigation)
@@ -105,7 +107,9 @@ function showTab(id, { focus = false, focusHeading = false, view, filter } = {})
 function setupPageLinks() {
   document.addEventListener('click', (e) => {
     const link = e.target.closest('[data-open]');
-    if (link) showTab(link.dataset.open, { focusHeading: true });
+    if (!link) return;
+    $('demo-menu').open = false; // a choice in the Demo menu closes it
+    showTab(link.dataset.open, { focusHeading: true });
   });
 }
 

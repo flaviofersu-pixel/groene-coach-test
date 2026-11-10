@@ -262,10 +262,6 @@ code { font-size: 12px; background: var(--surface-2); padding: 1px 5px; border-r
 .file-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
 
 /* --- Bestanden: two Explorer windows, drag a file onto a team-site folder -- */
-.board-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; margin-bottom: 12px; }
-.board-hint { max-width: 75ch; color: var(--text-2); }
-.filter-label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
-.filter-note { margin: 0 0 12px; padding: 8px 10px; border-radius: 6px; background: var(--warning-soft); color: var(--warning-text); font-size: 13px; }
 .board { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; margin-bottom: 16px; scroll-margin-top: 12px; }
 .board .explorer-tree { max-height: 600px; }
 
@@ -322,6 +318,25 @@ body.is-dragging-file .sp-folder > summary .drop-hint { display: inline; }
 .footer-link { border: 0; background: none; padding: 2px 0; color: var(--text-2); font-size: 12px; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
 .footer-link:hover { color: var(--brand); }
 .footer-link[aria-current="page"] { color: var(--text); font-weight: 600; text-decoration: none; }
+
+/* --- Benefits: what an action brings an employee (shown before any CO2) ----- */
+.benefits { display: flex; flex-wrap: wrap; gap: 4px 6px; margin-top: 4px; }
+.benefit { padding: 1px 8px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-2); font-size: 12px; }
+.move-benefits { margin: 4px 0 10px; }
+#move-dialog .move-explainer { margin: 0; font-size: 13px; }
+
+/* --- Bestanden > Verhuizen: "Zelf slepen" (collapsed by default) -------------- */
+.self-drag > .self-drag-summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; cursor: pointer; list-style: none; }
+.self-drag > .self-drag-summary::-webkit-details-marker { display: none; }
+.self-drag > .self-drag-summary::before { content: "›"; display: inline-block; width: 12px; color: var(--text-muted); transition: transform 120ms; }
+.self-drag[open] > .self-drag-summary::before { transform: rotate(90deg); }
+.self-drag[open] > .self-drag-summary { margin-bottom: 12px; }
+.self-drag .board { margin-bottom: 0; }
+
+/* The suggested folder lights up while you drag a file. */
+.suggest-hint { display: none; margin-left: 6px; padding: 0 6px; border-radius: 999px; background: var(--success-soft); color: var(--success-text); font-size: 11px; font-weight: 600; }
+.sp-folder.is-suggested > summary .tree-row { background: var(--success-soft); outline: 2px solid var(--success); outline-offset: -2px; }
+.sp-folder.is-suggested > summary .suggest-hint { display: inline; }
 
 /* --- Responsive ---------------------------------------------------------- */
 @media (max-width: 960px) {

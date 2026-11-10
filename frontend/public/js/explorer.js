@@ -1,20 +1,20 @@
 /**
  * @file explorer.js
- * @description The "Bestanden" tab: a small shell with four parts (sub-tabs).
+ * @description The "Bestanden" tab: a small shell with three parts (sub-tabs).
  *
- *   Verhuizen             moveBoard.js   ready list + drag OneDrive -> SharePoint
+ *   Verhuizen             moveBoard.js   ready list, "Eerst nakijken", optional "Zelf slepen"
  *   Dubbele kopieën       duplicates.js
  *   Mijn SharePoint-sites sites.js
- *   Voor en na            preview.js     before/after preview in Windows Explorer
+ *
+ * ("Voor en na" is a demo page for the product owner now, in the Demo menu.)
  *
  * The Actie-hub opens the Bestanden tab on a specific part via `select()`, e.g.
- * { view: 'move', filter: 'old' } shows the OneDrive column filtered on old files.
+ * { view: 'move', filter: 'old' } scrolls to the files that need checking first.
  */
 
 import { createMoveBoard } from './moveBoard.js';
 import { createDuplicates } from './duplicates.js';
 import { createSites } from './sites.js';
-import { createPreview } from './preview.js';
 
 /** @param {object} ctx shared app context (see app.js) */
 export function createExplorer(ctx) {
@@ -22,7 +22,6 @@ export function createExplorer(ctx) {
     move: createMoveBoard(ctx),
     duplicates: createDuplicates(ctx),
     sites: createSites(ctx),
-    preview: createPreview(ctx),
   };
   const subtabs = [...document.querySelectorAll('#tab-explorer [role="tab"]')];
   /** Filter requested by the Actie-hub, applied once the data is there. */
@@ -56,7 +55,7 @@ export function createExplorer(ctx) {
       if (view === 'move') parts.move.applyFilter(filter); // works right away if already loaded
     },
 
-    /** Loads all four parts in parallel; the shell reloads them after every change. */
+    /** Loads all parts in parallel; the shell reloads them after every change. */
     async load() {
       await Promise.all(Object.values(parts).map((part) => part.load()));
       if (pendingFilter) {

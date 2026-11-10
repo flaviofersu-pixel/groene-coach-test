@@ -15,42 +15,54 @@ import { api } from './api.js';
 import { el, append, button, icon } from './dom.js';
 import { formatSize, firstName, plural, greetingFor } from './format.js';
 import { co2Amount, co2InfoButton } from './co2.js';
+import { MOVE_BENEFITS, benefitTags } from './moveDialog.js';
 
 const $ = (id) => document.getElementById(id);
 
 /**
- * How each action from the API is shown. `title` and `doneTitle` get the count;
- * `target` is where the button takes you in the Bestanden tab.
+ * How each action from the API is shown.
+ *   title / doneTitle  get the count
+ *   button             the action itself, not a generic "Bekijken"
+ *   benefits           what it brings an employee; shown BEFORE any CO2 figure
+ *   target             where the button takes you in the Bestanden tab
  */
 const ACTION_TEXT = {
   move: {
     icon: 'move',
     title: (n) => `Verhuis ${plural(n, 'gedeeld bestand', 'gedeelde bestanden')} naar je teamsite`,
     doneTitle: 'Je gedeelde bestanden staan op de teamsite',
+    button: () => 'Verhuizen',
+    benefits: MOVE_BENEFITS,
     target: { view: 'move', filter: 'ready' },
   },
   duplicates: {
     icon: 'copies',
     title: (n) => `Ruim ${plural(n, 'dubbele kopie', 'dubbele kopieën')} op`,
     doneTitle: 'Geen dubbele kopieën in je OneDrive',
+    button: () => 'Kopieën opruimen',
+    benefits: ['Ruimte in je OneDrive'],
     target: { view: 'duplicates' },
   },
   old: {
     icon: 'clock',
     title: (n) => `Bekijk ${plural(n, 'bestand dat', 'bestanden die')} al meer dan een jaar niet ${n === 1 ? 'is' : 'zijn'} bewerkt`,
     doneTitle: 'Geen bestanden die lang niet zijn bewerkt',
+    button: (n) => (n === 1 ? 'Bekijk bestand' : 'Bekijk bestanden'),
+    benefits: [],
     target: { view: 'move', filter: 'old' },
   },
   shortcut: {
     icon: 'shortcut',
     title: (n) => `Voeg ${plural(n, 'snelkoppeling', 'snelkoppelingen')} naar je teamsites toe aan Mijn bestanden`,
     doneTitle: 'Je teamsites staan al in Mijn bestanden',
+    button: (n) => (n === 1 ? 'Snelkoppeling toevoegen' : 'Snelkoppelingen toevoegen'),
+    benefits: ['Sneller bij je teambestanden'],
     target: { view: 'sites' },
   },
 };
 
-/** Second line of an action: the saving, or why there is no number. */
 /**
+ * Second line of an action: the saving, or why there is no number.
  * @param {object} action
  * @param {boolean} isMainTotal the top action of the list: the only place on this
  *   screen that shows the everyday example
@@ -66,7 +78,7 @@ function actionDetail(action, isMainTotal) {
     case 'old':
       return el('span', 'action-sub', 'Check eerst de bewaarregels: sommige documenten moet je bewaren');
     case 'shortcut':
-      return el('span', 'action-sub', 'Geen directe besparing: je vindt je teambestanden sneller');
+      return el('span', 'action-sub', 'Geen directe besparing');
     default:
       return null;
   }
@@ -100,13 +112,15 @@ export function createActionHub(ctx) {
     if (done) {
       control = el('span', 'pill pill--success', '✓ Klaar');
     } else {
-      control = button('Bekijken', 'btn btn-secondary', () => ctx.showTab('tab-explorer', text.target));
-      control.setAttribute('aria-describedby', titleId); // "Bekijken" + which action
+      control = button(text.button(action.count), 'btn btn-secondary', () => ctx.showTab('tab-explorer', text.target));
+      control.setAttribute('aria-describedby', titleId); // button text + which action
     }
 
     return append(el('li', `action-row${done ? ' is-done' : ''}`),
       append(el('span', 'action-icon'), icon(text.icon)),
-      append(el('div', 'action-main'), title, actionDetail(action, isMainTotal)),
+      append(el('div', 'action-main'), title,
+        !done && text.benefits.length ? benefitTags(text.benefits) : null, // benefits first…
+        actionDetail(action, isMainTotal)),                                  // …then the CO2 figure
       control);
   }
 
