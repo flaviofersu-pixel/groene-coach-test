@@ -161,7 +161,9 @@ export function createImpactService({ db, coefficients: c }) {
             _co2: acc.co2,
           };
         })
-        .sort((a, b) => b._co2.high - a._co2.high)
+        // NO ranking by amount (teams should not feel compared or monitored):
+        // your own teams first, then the rest alphabetically, "Overige teams" last.
+        .sort((a, b) => (b.is_mine - a.is_mine) || ((a.name === OTHER) - (b.name === OTHER)) || a.name.localeCompare(b.name, 'nl'))
         .map(({ _co2, ...t }) => ({ ...t, co2_low_g: round(Math.max(0, _co2.low), 2), co2_high_g: round(Math.max(0, _co2.high), 2) }));
 
       return {

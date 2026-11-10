@@ -78,7 +78,7 @@ describe('OpruimCoach API', () => {
       assert.ok(eq === null || /telefoon opladen/.test(eq.label));
       assert.equal(f.estimate.storage_freed_mb, 0); // single move: no storage saving
       assert.equal(f.estimate.breakdown.storage.label, '0 gram CO₂');
-      assert.equal(f.suggested_site.display_name, 'Wonen'); // own team site
+      assert.equal(f.suggested_site.display_name, 'Woningbouw & Wonen'); // own team site
       assert.ok(f.suggested_folder && typeof f.suggested_folder.name === 'string'); // a specific folder
       assert.ok(f.reason.length > 0 && !/weg mag/i.test(f.reason));
     }
@@ -93,7 +93,7 @@ describe('OpruimCoach API', () => {
     const res = await t.call('POST', '/api/files/migrate-to-sharepoint', { token: sanne, body: { fileId: target.id } });
     assert.equal(res.status, 200);
     assert.equal(res.body.file.current_location, 'SharePoint');
-    assert.equal(res.body.site.display_name, 'Wonen');
+    assert.equal(res.body.site.display_name, 'Woningbouw & Wonen');
     assert.match(res.body.storage_note, /geen opslag/);
 
     assert.equal((await t.call('POST', '/api/files/migrate-to-sharepoint', { token: sanne, body: { fileId: target.id } })).status, 409);
@@ -104,9 +104,9 @@ describe('OpruimCoach API', () => {
 
   test('Bestanden: the user picks the folder; a folder of another site is refused', async () => {
     const { body: tree } = await t.call('GET', '/api/user/sharepoint-tree', { token: sanne });
-    const wonen = tree.sites.find((site) => site.display_name === 'Wonen');
+    const wonen = tree.sites.find((site) => site.display_name === 'Woningbouw & Wonen');
     assert.ok(wonen.folders.some((f) => f.name === 'Beleid'));
-    assert.ok(!tree.sites.some((site) => site.display_name === 'Financiën')); // not a member
+    assert.ok(!tree.sites.some((site) => site.display_name === 'Team Begroting')); // not a member
     const beleid = wonen.folders.find((f) => f.name === 'Beleid');
 
     const fileId = t.db.prepare("SELECT id FROM files WHERE owner_id = 'u01' AND filename = 'Huurtoeslag_analyse_Q3.xlsx'").get().id;
@@ -204,14 +204,14 @@ describe('OpruimCoach API', () => {
   test('SharePoint Mapper: inserts a shortcut once (idempotent) and shows it in the Explorer view', async () => {
     const first = await t.call('POST', '/api/user/map-sharepoint-shortcut', { token: sanne, body: {} });
     assert.equal(first.status, 201);
-    assert.equal(first.body.shortcut.name, 'Wonen - Documenten');
+    assert.equal(first.body.shortcut.name, 'Woningbouw & Wonen - Documenten');
     const again = await t.call('POST', '/api/user/map-sharepoint-shortcut', { token: sanne, body: {} });
     assert.equal(again.status, 200);
     assert.equal(again.body.created, false);
 
     const view = await t.call('GET', '/api/user/explorer-view', { token: sanne });
     const shortcut = view.body.after.items.find((i) => i.type === 'shortcut');
-    assert.equal(shortcut.name, 'Wonen - Documenten');
+    assert.equal(shortcut.name, 'Woningbouw & Wonen - Documenten');
     assert.ok(shortcut.children.some((folder) => folder.name === 'Verhuisd vanuit OneDrive'
       && folder.children.some((f) => f.tag === 'moved')));
     assert.ok(!view.body.before.items.some((i) => i.type === 'shortcut'));
@@ -223,7 +223,7 @@ describe('OpruimCoach API', () => {
     const { body } = await t.call('GET', '/api/user/explorer-view', { token: iris });
     const proposal = body.after.items.find((i) => i.type === 'shortcut');
     assert.equal(proposal.is_proposal, true);
-    assert.equal(proposal.name, 'Verkeer en Openbare Ruimte - Documenten');
+    assert.equal(proposal.name, 'Mobiliteit en Parkeren - Documenten');
     assert.equal(body.shortcuts_mapped, 0); // a proposal is not a real shortcut
   });
 
@@ -255,12 +255,16 @@ describe('OpruimCoach API', () => {
     const { body } = await t.call('GET', '/api/stats/impact', { token: sanne });
     assert.ok(body.personal.actions >= 1);
     assert.ok(!('department' in body) && !('departments' in body)); // no department named anywhere
-    assert.equal(body.my_teams.team_count, 2); // Wonen + Programma Groene ICT
+    assert.equal(body.my_teams.team_count, 2); // Woningbouw & Wonen + Programma Groene ICT
     assert.ok(!body.my_teams.suppressed);
     assert.match(body.organisation.co2_per_year.label, / – /);
     assert.ok(body.organisation.email_cloning.average_amplification > 1);
     assert.ok(body.teams.every((team) => !('user_id' in team)));
-    assert.deepEqual(body.teams.filter((team) => team.is_mine).map((team) => team.name).sort(), ['Programma Groene ICT', 'Wonen']);
+    // No ranking: my teams first (alphabetical), then the others alphabetically.
+    const names = body.teams.map((team) => team.name);
+    assert.deepEqual(names.slice(0, 2), ['Programma Groene ICT', 'Woningbouw & Wonen']);
+    const rest = names.slice(2);
+    assert.deepEqual(rest, [...rest].sort((a, b) => a.localeCompare(b, 'nl')));
     // The telemetry table has no column that could hold a person.
     const cols = t.db.prepare('PRAGMA table_info(telemetry_daily)').all().map((c) => c.name);
     assert.ok(!cols.some((c) => /user|owner|email|name/.test(c)));

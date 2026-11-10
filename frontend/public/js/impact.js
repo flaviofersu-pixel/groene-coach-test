@@ -11,14 +11,14 @@
 
 import { api } from './api.js';
 import { el, append } from './dom.js';
-import { formatSize, formatNumber, plural } from './format.js';
+import { formatNumber, plural } from './format.js';
 import { co2Amount, co2Text, co2InfoButton } from './co2.js';
 
 const $ = (id) => document.getElementById(id);
 
 /** @param {object} ctx shared app context (see app.js) */
 export function createImpact(ctx) {
-  const state = { data: null, scope: 'organisation' };
+  const state = { data: null };
   const tooltip = $('tooltip');
 
   function kpi(label, value, sub) {
@@ -30,7 +30,6 @@ export function createImpact(ctx) {
   const emptyKpi = (label, text) => append(el('article', 'kpi'), el('h3', 'kpi-label', label), el('p', 'kpi-empty', text));
 
   function renderKpis({ personal, my_teams: myTeams, organisation }) {
-    const mail = organisation.email_cloning;
     const hasPersonal = personal.actions > 0 && personal.co2_per_year.high > 0;
     const hasTeams = !myTeams.suppressed && myTeams.migrations > 0;
     $('impact-kpis').replaceChildren(
@@ -44,40 +43,8 @@ export function createImpact(ctx) {
         : emptyKpi('Jouw teams', myTeams.suppressed ? myTeams.reason : 'Nog geen documenten naar je teamsites verhuisd.'),
       // The main total of this screen: the only one with the everyday example and an "i".
       kpi('Hele gemeente', co2Amount(organisation.co2_per_year, { suffix: '', stacked: true, example: true, info: true }),
-        `per jaar · ${organisation.migrations} verhuizingen · ${organisation.mail_links} links i.p.v. bijlagen`),
-      kpi('Bijlagen-klonen (gemeente)', formatSize(mail.duplicate_mb),
-        `${mail.attachments} bijlagen gemiddeld ${formatNumber(mail.average_amplification, 1)}× opgeslagen · ${co2Text(mail.co2_per_year)}`));
-  }
-
-  /** A plain card: a value and one line of text (no decorative icons). */
-  function metaphor(value, text) {
-    return append(el('article', 'metaphor'),
-      append(el('div'), el('p', 'metaphor-value', value), el('p', 'metaphor-text', text)));
-  }
-
-  /** Realistic municipal comparisons; never inflated. */
-  function renderMetaphors() {
-    const scopeData = state.data[state.scope];
-    const container = $('metaphors');
-    if (scopeData.suppressed) {
-      container.replaceChildren(el('p', 'empty', scopeData.reason));
-      return;
-    }
-    // Only one kind of everyday example in the app (phone charging, on the main total).
-    const cards = [];
-    if (state.scope === 'my_teams') {
-      // Teams only get savings from documents moved to their team site.
-      cards.push(metaphor(plural(scopeData.migrations, 'document', 'documenten'),
-        'verhuisd naar de teamsites van je teams. Daar kunnen collega\'s erbij en wordt alles bewaard volgens de bewaarregels.'));
-    } else {
-      const mail = scopeData.email_cloning;
-      cards.push(
-        metaphor(`${formatNumber(mail.average_amplification, 1)}× opslag`,
-          `Zo vaak wordt een gemiddelde bijlage opgeslagen: ${formatSize(mail.duplicate_mb)} aan kopieën in mailboxen (${co2Text(mail.co2_per_year)}). Met een link is dat een bestand.`),
-        metaphor(`${formatSize(scopeData.storage_freed_mb)} opgeruimd`,
-          `Alleen identieke kopieën opruimen bespaart opslag. Daarnaast ${formatSize(scopeData.storage_avoided_mb)} aan mailbijlagen voorkomen met links.`));
-    }
-    container.replaceChildren(...cards);
+        `per jaar · ${plural(organisation.migrations, 'document', 'documenten')} verhuisd · ` +
+        `${plural(organisation.mail_links, 'keer', 'keer')} een link gestuurd in plaats van een bijlage`));
   }
 
   function showTooltip(row, d, x, y) {
@@ -108,7 +75,10 @@ export function createImpact(ctx) {
       bar.style.setProperty('--lo', String(d.co2_low_g / max));
       bar.style.setProperty('--hi', String(d.co2_high_g / max));
       append(row, el('span', 'range-label', d.name), append(el('div', 'range-track'), bar),
-        append(el('span', 'range-value'), co2Amount(d.co2_per_year, { suffix: '' })));
+        // Nothing saved yet: say so instead of "0 gram CO₂".
+        d.co2_high_g > 0
+          ? append(el('span', 'range-value'), co2Amount(d.co2_per_year, { suffix: '' }))
+          : el('span', 'range-value muted', 'Nog niets verhuisd'));
       row.addEventListener('pointermove', (e) => showTooltip(row, d, e.clientX, e.clientY));
       row.addEventListener('pointerleave', hideTooltip);
       row.addEventListener('focus', () => showTooltip(row, d));
@@ -125,12 +95,7 @@ export function createImpact(ctx) {
   // One explanation button for the whole chart; every row shows its own example label.
   $('chart-title').after(co2InfoButton());
 
-  // One-time wiring of the scope switch and the table toggle.
-  document.querySelectorAll('[data-scope]').forEach((btn) => btn.addEventListener('click', () => {
-    state.scope = btn.dataset.scope;
-    document.querySelectorAll('[data-scope]').forEach((b) => b.setAttribute('aria-checked', String(b === btn)));
-    if (state.data) renderMetaphors();
-  }));
+  // One-time wiring of the table toggle.
   $('toggle-table').addEventListener('click', (e) => {
     const showTable = e.currentTarget.getAttribute('aria-pressed') !== 'true';
     e.currentTarget.setAttribute('aria-pressed', String(showTable));
@@ -144,9 +109,8 @@ export function createImpact(ctx) {
     async load() {
       state.data = await api.impact();
       renderKpis(state.data);
-      renderMetaphors();
       renderChart(state.data.teams);
-      $('privacy-note').textContent = `${state.data.privacy.note} Teams met minder dan ${state.data.privacy.min_group_size} leden vallen onder "Overige teams".`;
+      $('privacy-note').textContent = `Opgeteld per team, zonder namen. Een verhuizing telt mee bij het team waar het document naartoe gaat. Teams met minder dan ${state.data.privacy.min_group_size} leden vallen onder "Overige teams".`;
     },
   };
 }

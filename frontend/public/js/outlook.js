@@ -108,7 +108,7 @@ async function onSend(e) {
 /** Reload the attachment picker after (re)sign-in. */
 async function onSignedIn(user) {
   $('load-error').hidden = true;
-  $('from').textContent = `${user.display_name} · ${user.department}`;
+  $('from').textContent = user.display_name;
   $('result').hidden = true;
   try {
     const { files } = await api.myFiles();

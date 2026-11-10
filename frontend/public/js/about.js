@@ -1,7 +1,8 @@
 /**
  * @file about.js
- * @description The "Privacy & berekening" tab: which Graph permissions the
- * app holds (from the token), and the live co2_metrics coefficient table.
+ * @description The "Privacy & berekening" page. The plain-language points are
+ * static HTML; this module fills the "Technische details": the Graph permissions
+ * the app holds (from the token) and the table of calculation factors.
  */
 
 import { api } from './api.js';
@@ -9,6 +10,14 @@ import { el, append } from './dom.js';
 import { formatNumber } from './format.js';
 
 const $ = (id) => document.getElementById(id);
+
+/**
+ * One number for a fixed value ("268"), a range for an uncertain one ("0,3 – 0,5"):
+ * not every factor is a range, so the table should not pretend it is.
+ */
+const factorValue = (m) => (m.value_low === m.value_high
+  ? formatNumber(m.value_low, 3)
+  : `${formatNumber(m.value_low, 3)} – ${formatNumber(m.value_high, 3)}`);
 
 /** Why each delegated Graph scope is needed. */
 const SCOPES = [
@@ -32,8 +41,7 @@ export function createAbout(ctx) {
       const { metrics } = await api.metrics();
       $('metrics-table').replaceChildren(...metrics.map((m) => append(el('tr'),
         el('td', '', m.label),
-        el('td', 'num', formatNumber(m.value_low, 3)),
-        el('td', 'num', formatNumber(m.value_high, 3)),
+        el('td', 'num', factorValue(m)),
         el('td', '', m.unit),
         el('td', 'small', m.derivation))));
     },

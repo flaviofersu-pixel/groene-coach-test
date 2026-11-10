@@ -213,25 +213,11 @@
         </div>
         <div class="kpis" id="impact-kpis"></div>
 
-        <section class="panel" aria-labelledby="metaphor-title">
-          <div class="panel-head">
-            <div>
-              <h3 class="panel-title" id="metaphor-title">Wat betekent dat in Amsterdam?</h3>
-              <p class="panel-sub">Per jaar</p>
-            </div>
-            <div class="segmented" role="radiogroup" aria-label="Bereik">
-              <button type="button" role="radio" aria-checked="true" data-scope="organisation">Gemeente</button>
-              <button type="button" role="radio" aria-checked="false" data-scope="my_teams">Mijn teams</button>
-            </div>
-          </div>
-          <div class="metaphors" id="metaphors"></div>
-        </section>
-
         <section class="panel" aria-labelledby="chart-title">
           <div class="panel-head">
             <div>
               <h3 class="panel-title" id="chart-title">Besparing per team</h3>
-              <p class="panel-sub">Per jaar · telt mee bij het team waar het document naartoe gaat</p>
+              <p class="panel-sub">Per jaar · je eigen teams eerst, daarna op alfabet</p>
             </div>
             <button type="button" class="btn btn-secondary btn-sm" id="toggle-table" aria-pressed="false">Tabel</button>
           </div>
@@ -255,40 +241,41 @@
         <div class="page-head">
           <button type="button" class="btn-link back-link" data-open="tab-hub">← Terug naar de Actie-hub</button>
           <h2 id="about-page-title" class="page-title" tabindex="-1">Privacy &amp; berekening</h2>
-          <p class="muted">Welke gegevens OpruimCoach gebruikt en hoe we rekenen.</p>
+          <p class="muted">Wat OpruimCoach wel en niet doet, in gewone taal.</p>
         </div>
-        <div class="grid-2">
-          <section class="panel prose">
-            <h3 class="panel-title">Jouw privacy</h3>
-            <ul>
-              <li>Team- en gemeentecijfers zijn <strong>opgeteld</strong>: per dag en per team, zonder namen of gebruikers-id's. Een verhuizing telt mee bij het team waar het document naartoe gaat.</li>
-              <li>Een team wordt pas getoond vanaf <strong>3 leden</strong>, zodat niets naar jou herleidbaar is.</li>
-              <li>Je persoonlijke overzicht is <strong>alleen voor jou</strong> zichtbaar en wordt na 365 dagen gewist. Een "Nu niet" wordt na 7 dagen vergeten.</li>
-              <li>Bij e-mail kijkt de coach alleen naar de grootte van bijlagen en het <strong>aantal</strong> ontvangers, nooit naar adressen of inhoud.</li>
-            </ul>
-            <h3 class="panel-title spaced">Archiefwet</h3>
-            <ul>
-              <li>De coach <strong>verwijdert nooit</strong> automatisch iets. Opruimen kan alleen na jouw akkoord, en alleen voor identieke kopieën.</li>
-              <li>Kopieën gaan naar de prullenbak en zijn 93 dagen terug te zetten. Het origineel blijft bewaard.</li>
-              <li>Dossiers horen op <strong>SharePoint</strong>: daar gelden de bewaartermijnen van je team, ook als jij van baan wisselt.</li>
-            </ul>
-          </section>
-          <section class="panel">
-            <h3 class="panel-title">Toestemmingen van deze app</h3>
-            <ul id="scope-list" class="scope-list"></ul>
-            <p class="muted small">Je sessietoken staat alleen in het geheugen van dit tabblad en verloopt na 15 minuten. De server wisselt het om voor Microsoft Graph-toegang; dat Graph-token komt nooit in je browser.</p>
-          </section>
-        </div>
-        <section class="panel">
-          <h3 class="panel-title">Gebruikte CO₂-factoren</h3>
-          <p class="panel-sub">Uit de tabel <code>co2_metrics</code>. Elke factor is een bandbreedte; daarom tonen we nooit een exact getal.</p>
+
+        <!-- Plain language first: what an employee wants to know -->
+        <section class="panel" aria-labelledby="privacy-points-title">
+          <h3 class="panel-title" id="privacy-points-title">Jouw privacy</h3>
+          <ol class="plain-points">
+            <li><strong>Wat we bekijken.</strong> Alleen gegevens over je bestanden: de naam, de grootte, wanneer het voor het laatst is bewerkt, de map, en of het gedeeld is.</li>
+            <li><strong>Wat we nooit bekijken.</strong> De inhoud van je bestanden en e-mails, en met wie je iets deelt. Bij e-mail tellen we alleen hoeveel ontvangers er zijn.</li>
+            <li><strong>Wat we bewaren, en hoe lang.</strong> Een "Nu niet" onthouden we 7 dagen. Je eigen acties bewaren we 365 dagen, alleen voor jou. Verder alleen opgetelde getallen per team, zonder namen. In je browser bewaren we niets van je bestanden.</li>
+            <li><strong>Wie wat ziet.</strong> Jouw eigen cijfers zie alleen jij. Een team wordt pas getoond vanaf 3 leden. Niemand ziet wat een collega doet.</li>
+            <li><strong>Jij beslist.</strong> OpruimCoach verplaatst of verwijdert niets zonder jouw klik. Kopieën gaan naar de prullenbak en kun je 93 dagen terugzetten. Voor documenten gelden de bewaarregels van de gemeente (Archiefwet).</li>
+          </ol>
+        </section>
+
+        <section class="panel prose" aria-labelledby="calc-title">
+          <h3 class="panel-title" id="calc-title">Hoe we de besparing berekenen</h3>
+          <p>We schatten hoeveel stroom het scheelt in datacenters en op het netwerk als een bestand op de juiste plek staat, en rekenen dat om naar CO₂. Omdat het een schatting is, tonen we een onder- en bovengrens. Ter vergelijking gebruiken we één voorbeeld: je telefoon opladen.</p>
+        </section>
+
+        <!-- For IT, privacy officers and the curious: collapsed by default -->
+        <details class="panel tech-details" id="tech-details">
+          <summary class="tech-summary"><span class="panel-title">Technische details</span> <span class="panel-sub">Toestemmingen van de app en de rekenfactoren</span></summary>
+          <h4 class="tech-heading">Toestemmingen (Microsoft Graph)</h4>
+          <ul id="scope-list" class="scope-list"></ul>
+          <p class="muted small">Je sessietoken staat alleen in het geheugen van dit tabblad en verloopt na 15 minuten. De server wisselt het om voor toegang tot Microsoft Graph; dat token komt nooit in je browser.</p>
+          <h4 class="tech-heading">Rekenfactoren</h4>
+          <p class="panel-sub">Waar we onzeker zijn, rekenen we met een onder- en bovengrens. Vaste waarden hebben één getal.</p>
           <div class="table-wrap">
             <table class="data-table">
-              <thead><tr><th scope="col">Factor</th><th scope="col" class="num">Laag</th><th scope="col" class="num">Hoog</th><th scope="col">Eenheid</th><th scope="col">Afleiding</th></tr></thead>
+              <thead><tr><th scope="col">Factor</th><th scope="col" class="num">Waarde</th><th scope="col">Eenheid</th><th scope="col">Toelichting</th></tr></thead>
               <tbody id="metrics-table"></tbody>
             </table>
           </div>
-        </section>
+        </details>
       </section>
       <!-- Footer: reference pages that you do not need every day -->
       <footer class="app-footer">

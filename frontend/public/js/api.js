@@ -109,7 +109,7 @@ export async function setupUserSelect(select, onSignedIn) {
   const { users } = await api.simulatedUsers();
   let current = storedUserId();
   if (!users.some((u) => u.id === current)) current = users[0].id;
-  select.replaceChildren(...users.map((u) => new Option(`${u.display_name} · ${u.department}`, u.id, false, u.id === current)));
+  select.replaceChildren(...users.map((u) => new Option(u.display_name, u.id, false, u.id === current)));
 
   select.addEventListener('change', async () => {
     storeUserId(select.value);

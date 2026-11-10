@@ -4,8 +4,8 @@
 
 OpruimCoach is a **Microsoft Teams web app** plus a simulated **Outlook Smart Alert**. It politely coaches civil servants to:
 
-1. move intensively shared files from their personal **OneDrive** to the department's **SharePoint** site (the right place under the Archiefwet);
-2. add their department library to OneDrive with **one click** ("Snelkoppeling toevoegen aan Mijn bestanden");
+1. move shared files from their personal **OneDrive** to the right folder on their team's **SharePoint** site (the right place under the Archiefwet);
+2. add their team library to OneDrive with **one click** ("Snelkoppeling toevoegen aan Mijn bestanden");
 3. clean up **identical copies** (only after confirmation, via the recycle bin, and reversible);
 4. share **links instead of attachments** (1 attachment to 20 people = 20× storage).
 
@@ -154,15 +154,16 @@ sudo systemctl daemon-reload && sudo systemctl enable --now groenecoach
 
 ## 4. Demo script (about 5 minutes)
 
-1. **Actie-hub (Teams).** Signed in as *Sanne de Vries (Wonen)*. The nudge shows: *"Samen groener werken, Sanne? 🌿 Dit bestand wordt intensief gedeeld met je team…"*. Open **"Waarom een bandbreedte?"**: storage **0 gram**, plus sync and back-up ranges. Click **Ja, verhuis het** to see the green checkmark.
-2. Click **Toon map in Verkenner**. The **Verkenner** tab opens: *Voor* shows the cluttered personal OneDrive, *Na* shows the new **"Wonen - Documenten"** shortcut (badge "Nieuw") containing the moved file.
-3. Back in the **Actie-hub**, under **Dubbele kopieën**, click **Ruim mijn kopieën op…** for the Woonvisie presentation. A confirmation dialog appears, the copy goes to the recycle bin, and the toast offers **Ongedaan maken**.
-4. Click **Nu niet** on another suggestion: it disappears for 7 days, and the file stays where it is.
-5. **Outlook** (link at the top). Choose the 48.5 MB presentation and **Afdeling (20)**, then **Verzenden**. The Smart Alert explains the 20× clones and offers **Deel als link / Toch verzenden / Terug naar bericht**.
-6. **Impact** shows ranges for you, your department and the municipality, canal-lamp hours, cooling kWh, cloning waste and the range bars per department. **Privacy & berekening** shows the granted Graph scopes and the coefficient table.
-7. *(Optional)* **Admin consent missing:** stop the servers, run `ADMIN_CONSENT=false npm start`, and reload. A banner explains that `Files.ReadWrite.All` needs admin consent, and every file operation is refused (403).
+1. **Actie-hub.** Signed in as *Sanne de Vries*. The greeting depends on the time of day ("Goedemiddag, Sanne"). The list of recommended actions shows, per action, the benefits first ("Je team kan erbij", "Bewaard volgens de bewaarregels") and then the estimated CO2 saving; only the top action shows the everyday example ("≈ 1 – 72 keer je telefoon opladen"). Below: **Wat je acties opleveren** (you and your teams).
+2. Click **Verhuizen**. The **Bestanden** tab opens on *Klaar om te verhuizen*: every file has a suggested folder ("Voorstel: Woningbouw & Wonen › Documenten › Projecten"). Click **Verhuizen…**: the dialog has the suggestion preselected and explains in plain words what moving means. Confirm, and the toast names the destination.
+3. *Eerst nakijken* lists files not edited for over a year: check the retention rules before moving them. Open **Zelf slepen** and drag a file onto a folder of a team site; while dragging, the suggested folder lights up.
+4. **Dubbele kopieën**: click **Ruim mijn kopieën op…** for the Woonvisie presentation. A confirmation dialog appears, the copy goes to the recycle bin, and the toast offers **Ongedaan maken**.
+5. **Mijn SharePoint-sites**: **Snelkoppeling toevoegen** (Microsoft's "Add shortcut to My files") and **Openen in SharePoint** (in the demo: a preview of the library, because the demo addresses do not exist).
+6. **Impact** shows three numbers (you, your teams, the municipality) and the saving per team: your own teams first, the rest alphabetically, never ranked by amount. **Privacy & berekening** (footer) starts with five plain points; permissions and calculation factors are under *Technische details*.
+7. **Demo menu** (top right, marked *Demo*): switch between the 18 fictional employees, open **Voor en na** (before/after view, for the product owner) or the **Outlook simulation**. In Outlook, choose the 48.5 MB presentation and **Team (20)**, then **Verzenden**: the Smart Alert offers **Deel als link / Toch verzenden / Terug naar bericht**.
+8. *(Optional)* **Admin consent missing:** stop the servers, run `ADMIN_CONSENT=false npm start`, and reload. A banner explains that `Files.ReadWrite.All` needs admin consent, and every file operation is refused (403).
 
-Use the yellow **Simulatie** dropdown to switch between the 18 fictional employees. Open the Teams app and Outlook side by side: the Teams app updates live when Outlook records a link.
+Open the Teams app and Outlook side by side: the Teams app updates live when Outlook records a link.
 
 ---
 
@@ -173,17 +174,20 @@ All `/api/files`, `/api/user`, `/api/outlook` and `/api/stats` routes require `A
 | Method | Endpoint | Description |
 |---|---|---|
 | POST | `/api/auth/simulated-sso` | `{ "userId": "u01" }` → 15-minute token (demo only) |
-| GET | `/api/files/scan-onedrive` | Own OneDrive files with `times_shared > 2` and a CO2 range |
-| GET | `/api/files/duplicate-chains` | Identical-copy chains you are part of |
-| POST | `/api/files/migrate-to-sharepoint` | `{ "fileId": 2, "siteId": "s01" }` (site is optional) |
+| GET | `/api/files/scan-onedrive` | Shared OneDrive files ready to move, with a suggested team folder |
+| GET | `/api/files/onedrive` | All own OneDrive files (last edited, shared yes/no, old) |
+| GET | `/api/files/actions` | The Actie-hub action list (counts + savings) |
+| GET | `/api/files/duplicate-chains` | Identical copies in your own OneDrive |
+| POST | `/api/files/migrate-to-sharepoint` | `{ "fileId": 2, "siteId": "s01", "folderId": 1 }` (site and folder optional) |
 | POST | `/api/files/snooze` | `{ "fileId": 2 }` → "Nu niet" |
 | POST | `/api/files/consolidate-duplicates` | `{ "contentHash": "…", "confirmed": true }` |
 | POST | `/api/files/:id/restore` | Undo a clean-up |
 | POST | `/api/user/map-sharepoint-shortcut` | `{ "siteId": "s01" }` → SharePoint shortcut in OneDrive |
-| GET | `/api/user/explorer-view` | Before/after Explorer trees |
+| GET | `/api/user/sharepoint-tree` | Your team sites with their folders |
+| GET | `/api/user/explorer-view` | Before/after trees (demo page "Voor en na") |
 | POST | `/api/outlook/evaluate-send` | `{ "fileIds": [3], "recipientCount": 20 }` → Smart Alert decision |
 | POST | `/api/outlook/resolve` | `{ "decision": "share_link", "fileIds": [3], "recipientCount": 20 }` |
-| GET | `/api/stats/impact` | Personal / department / organisation impact (ranges) |
+| GET | `/api/stats/impact` | Personal / your teams / per team / organisation (ranges) |
 | GET | `/api/co2-metrics` | Coefficient table (public) |
 
 ```bash

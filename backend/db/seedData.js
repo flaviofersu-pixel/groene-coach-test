@@ -39,7 +39,7 @@ export const CO2_METRICS = [
   ['backup_dedup_reduction', 'Minder back-up-overhead op SharePoint', 0, 0.3, 'fractie', 'behaviour',
     'Site-back-up dedupliceert versies; ondergrens 0 als back-up al dedupliceert', 'Aanname PoC'],
   ['mail_copies_per_recipient', 'Kopieën per ontvanger (bijlage)', 1, 1, 'kopie', 'behaviour',
-    'Regel van Rick van Kersbergen: 1 bijlage aan 20 mensen = 20× opslag', 'Projectbrief v2'],
+    '1 bijlage aan 20 mensen = 20× opslag (elke ontvanger krijgt een eigen kopie)', 'Projectbrief v2'],
   // The everyday example next to the main CO2 total. Deliberately SMALL: one person's
   // saving is grams, so a car trip would make it look meaningless.
   ['phone_charge_kwh', 'Smartphone een keer volledig opladen', 0.014, 0.024, 'kWh', 'metaphor',
@@ -49,14 +49,17 @@ export const CO2_METRICS = [
 
 // --- SharePoint sites ------------------------------------------------------------------------
 // [id, display_name, department|null, folders[]]
+// display_name = the TEAM name as people see it in Microsoft Teams (not a department
+// name: many people do not know their "afdeling"). The department column stays
+// internal: it only links users to their own team in this demo.
 export const SITES = [
-  ['s01', 'Wonen',                      'Wonen',                      ['Beleid', 'Projecten', 'Overleggen']],
-  ['s02', 'Verkeer en Openbare Ruimte', 'Verkeer en Openbare Ruimte', ['Parkeren', 'Projecten', 'Vergunningen']],
-  ['s03', 'Financiën',                  'Financiën',                  ['Begroting', 'Rapportages', 'Subsidies']],
-  ['s04', 'Duurzaamheid',               'Duurzaamheid',               ['Klimaatbeleid', 'Groene ICT', 'Energie']],
-  ['s05', 'Sociaal Domein',             'Sociaal Domein',             ['Beleid', 'Contracten', 'Monitoring']],
-  ['s06', 'Informatievoorziening',      'Informatievoorziening',      ['Architectuur', 'Licenties', 'Projecten']],
-  ['s07', 'Programma Groene ICT',       null,                         ['Plan van aanpak', 'Metingen']],
+  ['s01', 'Woningbouw & Wonen',          'Wonen',                      ['Beleid', 'Projecten', 'Overleggen']],
+  ['s02', 'Mobiliteit en Parkeren',      'Verkeer en Openbare Ruimte', ['Parkeren', 'Projecten', 'Vergunningen']],
+  ['s03', 'Team Begroting',              'Financiën',                  ['Begroting', 'Rapportages', 'Subsidies']],
+  ['s04', 'Klimaatneutraal 2050',        'Duurzaamheid',               ['Klimaatbeleid', 'Groene ICT', 'Energie']],
+  ['s05', 'Armoede en Schulden',         'Sociaal Domein',             ['Beleid', 'Contracten', 'Monitoring']],
+  ['s06', 'IV Architectuur & Licenties', 'Informatievoorziening',      ['Architectuur', 'Licenties', 'Projecten']],
+  ['s07', 'Programma Groene ICT',        null,                         ['Plan van aanpak', 'Metingen']],
 ];
 
 /** Folder created on demand in a site when a file is moved there by the coach. */

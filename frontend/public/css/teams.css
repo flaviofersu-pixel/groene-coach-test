@@ -171,15 +171,7 @@
 .kpi-sub { font-size: 12px; color: var(--text-muted); }
 .kpi-empty, .hub-impact-empty { margin-top: 6px; font-size: 14px; color: var(--text-2); }
 
-.segmented { display: inline-flex; padding: 2px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border); }
-.segmented button { border: 0; background: transparent; padding: 4px 12px; border-radius: 6px; cursor: pointer; color: var(--text-2); font-weight: 600; font-size: 13px; }
-.segmented button[aria-checked="true"] { background: var(--surface); color: var(--text); box-shadow: 0 1px 2px rgb(0 0 0 / 0.12); }
 
-.metaphors { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
-.metaphor { display: flex; gap: 12px; align-items: flex-start; padding: 14px; border-radius: var(--radius); background: var(--surface-2); border: 1px solid var(--border); }
-.metaphor-icon { flex: none; font-size: 28px; line-height: 1; }
-.metaphor-value { font-size: 19px; font-weight: 600; line-height: 1.25; }
-.metaphor-text { color: var(--text-2); font-size: 13px; margin-top: 2px; }
 
 /* Range chart: interval bars from low to high on one shared axis. */
 .chart-key { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--text-2); margin-bottom: 10px; }
@@ -337,6 +329,15 @@ body.is-dragging-file .sp-folder > summary .drop-hint { display: inline; }
 .suggest-hint { display: none; margin-left: 6px; padding: 0 6px; border-radius: 999px; background: var(--success-soft); color: var(--success-text); font-size: 11px; font-weight: 600; }
 .sp-folder.is-suggested > summary .tree-row { background: var(--success-soft); outline: 2px solid var(--success); outline-offset: -2px; }
 .sp-folder.is-suggested > summary .suggest-hint { display: inline; }
+
+/* --- Privacy & berekening: plain points first, technical details collapsed - */
+.plain-points { margin: 8px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 10px; max-width: 80ch; }
+.plain-points li::marker { color: var(--text-muted); font-weight: 600; }
+.tech-details > .tech-summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; cursor: pointer; list-style: none; }
+.tech-details > .tech-summary::-webkit-details-marker { display: none; }
+.tech-details > .tech-summary::before { content: "›"; display: inline-block; width: 12px; color: var(--text-muted); transition: transform 120ms; }
+.tech-details[open] > .tech-summary::before { transform: rotate(90deg); }
+.tech-heading { margin: 16px 0 4px; font-size: 14px; font-weight: 700; }
 
 /* --- Responsive ---------------------------------------------------------- */
 @media (max-width: 960px) {
