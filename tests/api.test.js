@@ -100,7 +100,7 @@ describe('OpruimCoach API', () => {
     assert.equal((await t.call('POST', '/api/files/migrate-to-sharepoint', { token: sanne, body: { fileId: lottesFile } })).status, 403);
   });
 
-  test('Verkenner: the user picks the folder; a folder of another site is refused', async () => {
+  test('Bestanden: the user picks the folder; a folder of another site is refused', async () => {
     const { body: tree } = await t.call('GET', '/api/user/sharepoint-tree', { token: sanne });
     const wonen = tree.sites.find((site) => site.display_name === 'Wonen');
     assert.ok(wonen.folders.some((f) => f.name === 'Beleid'));
@@ -157,7 +157,7 @@ describe('OpruimCoach API', () => {
     assert.equal(undo.body.status, 'active');
   });
 
-  test('Verkenner: all own OneDrive files with an honest "last edited" date and no people counts', async () => {
+  test('Bestanden: all own OneDrive files with an honest "last edited" date and no people counts', async () => {
     const { status, body } = await t.call('GET', '/api/files/onedrive', { token: sanne });
     assert.equal(status, 200);
     const odCount = t.db.prepare("SELECT COUNT(*) AS n FROM files WHERE owner_id = 'u01' AND current_location = 'OneDrive' AND status = 'active'").get().n;
@@ -211,6 +211,15 @@ describe('OpruimCoach API', () => {
       && folder.children.some((f) => f.tag === 'moved')));
     assert.ok(!view.body.before.items.some((i) => i.type === 'shortcut'));
     assert.ok(view.body.after.personal_file_count < view.body.before.personal_file_count);
+  });
+
+  test('Voor en na: "Na" shows your team folder as a proposal before you add the shortcut', async () => {
+    const iris = await t.signIn('u05'); // no shortcut yet
+    const { body } = await t.call('GET', '/api/user/explorer-view', { token: iris });
+    const proposal = body.after.items.find((i) => i.type === 'shortcut');
+    assert.equal(proposal.is_proposal, true);
+    assert.equal(proposal.name, 'Verkeer en Openbare Ruimte - Documenten');
+    assert.equal(body.shortcuts_mapped, 0); // a proposal is not a real shortcut
   });
 
   test('SharePoint Mapper: only sites the user is a member of (403)', async () => {

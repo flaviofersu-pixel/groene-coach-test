@@ -7,7 +7,7 @@
  * when we cannot put a number on it) and one button.
  * Below the list, a small "Wat je acties opleveren" summary (you and your teams);
  * the full Impact page is linked from there and from the footer. The button opens the
- * Verkenner with the right part (and filter) already selected; the actual
+ * Bestanden tab with the right part (and filter) already selected; the actual
  * work (moving, cleaning up) always happens there, after the user's click.
  */
 
@@ -29,7 +29,7 @@ const RETENTION_INFO = () => [
 
 /**
  * How each action from the API is shown. `title` and `doneTitle` get the count;
- * `target` is where the button takes you in the Verkenner.
+ * `target` is where the button takes you in the Bestanden tab.
  */
 const ACTION_TEXT = {
   move: {
@@ -52,8 +52,8 @@ const ACTION_TEXT = {
   },
   shortcut: {
     icon: 'shortcut',
-    title: (n) => `Zet ${plural(n, 'teammap', 'teammappen')} in je OneDrive`,
-    doneTitle: 'Je teammappen staan al in je OneDrive',
+    title: (n) => `Voeg ${plural(n, 'snelkoppeling', 'snelkoppelingen')} naar je teamsites toe aan Mijn bestanden`,
+    doneTitle: 'Je teamsites staan al in Mijn bestanden',
     target: { view: 'sites' },
   },
 };

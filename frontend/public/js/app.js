@@ -5,7 +5,7 @@
  * PATTERN: each tab is a small "view module" with a `load()` method. The shell
  * loads the visible tab and marks the others stale; a stale tab reloads when
  * it is opened. A shared context object lets views talk to the shell (e.g. an
- * Actie-hub button opening the Verkenner on the right part).
+ * Actie-hub button opening the Bestanden tab on the right part).
  */
 
 import { api, setupUserSelect, updates } from './api.js';
@@ -17,7 +17,7 @@ import { loadCo2Factors } from './co2.js';
 
 const $ = (id) => document.getElementById(id);
 
-/** The main tabs only (the Verkenner has its own sub-tabs, handled in explorer.js). */
+/** The main tabs only (the Bestanden tab has its own sub-tabs, handled in explorer.js). */
 const mainTabs = () => [...document.querySelectorAll('.tabs [role="tab"]')];
 
 /** Shared context handed to every view. */
@@ -63,7 +63,7 @@ async function loadView(id) {
 const loadActive = () => loadView(activeTab);
 
 /**
- * Shows one page. Actie-hub and Verkenner are tabs at the top; Impact and
+ * Shows one page. Actie-hub and Bestanden are tabs at the top; Impact and
  * Privacy & berekening are pages opened from the footer (no tab button).
  * @param {string} id panel id, e.g. 'tab-explorer'
  * @param {{ focus?: boolean, focusHeading?: boolean, view?: string, filter?: string }} [options]
@@ -120,6 +120,18 @@ function setupTabs() {
   });
 }
 
+/** The demo menu closes on a click outside it or on Esc, like a normal menu. */
+function setupDemoMenu() {
+  const menu = $('demo-menu');
+  document.addEventListener('click', (e) => { if (menu.open && !menu.contains(e.target)) menu.open = false; });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && menu.open) {
+      menu.open = false;
+      menu.querySelector('summary').focus();
+    }
+  });
+}
+
 /** Called after every simulated SSO sign-in (start and user switch). */
 async function onSignedIn() {
   try {
@@ -129,11 +141,14 @@ async function onSignedIn() {
     return;
   }
   $('consent-banner').hidden = ctx.me.admin_consent_granted;
+  $('demo-user').textContent = ctx.me.user.display_name;
+  $('demo-menu').open = false;
 }
 
 async function init() {
   setupTabs();
   setupPageLinks();
+  setupDemoMenu();
   await loadCo2Factors(); // numbers for the CO2 info popovers
   // Another window changed something: refresh (ignored until signed in).
   updates?.addEventListener('message', () => { if (ctx.me) ctx.refreshAll({ broadcast: false }).catch(() => {}); });

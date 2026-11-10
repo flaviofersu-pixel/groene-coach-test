@@ -18,7 +18,7 @@ export function createFilesRouter(hub) {
   /** GET /api/files/scan-onedrive: own OneDrive files with times_shared > 2 (not snoozed). */
   router.get('/scan-onedrive', (req, res) => res.json(hub.scanOneDrive(req.actor)));
 
-  /** GET /api/files/onedrive: all own OneDrive files (Verkenner, left column). */
+  /** GET /api/files/onedrive: all own OneDrive files (Bestanden tab, left column). */
   router.get('/onedrive', (req, res) => res.json(hub.listOneDrive(req.actor)));
 
   /** GET /api/files/actions: the action list of the Actie-hub. */

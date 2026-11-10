@@ -23,9 +23,19 @@
   flex: 1 1 200px; max-width: 420px; height: 32px; padding: 0 12px;
   display: flex; align-items: center; border-radius: 6px; background: var(--surface); color: var(--text-muted);
 }
-.sim-user { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-left: auto; min-width: 0; }
-.sim-user-label { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
-.sim-link { font-weight: 600; }
+/* Demo menu (simulation controls, clearly separated from the product). */
+.demo-menu { position: relative; margin-left: auto; }
+.demo-summary { display: flex; align-items: center; gap: 8px; padding: 4px 10px; border-radius: 6px; cursor: pointer; list-style: none; font-size: 13px; color: var(--text-2); }
+.demo-summary::-webkit-details-marker { display: none; }
+.demo-summary:hover { background: var(--surface); }
+.demo-panel {
+  position: absolute; right: 0; top: calc(100% + 6px); z-index: 40;
+  display: flex; flex-direction: column; gap: 10px; width: min(320px, calc(100vw - 32px)); padding: 12px 14px;
+  border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow);
+}
+.demo-note { font-size: 12px; color: var(--text-muted); }
+.demo-field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; }
+.demo-link { font-size: 13px; font-weight: 600; }
 
 /* --- Shell ----------------------------------------------------------------- */
 .teams-shell { flex: 1; display: flex; min-width: 0; }
@@ -108,19 +118,22 @@
 .chain-foot { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 
 /* --- Explorer preview (SharePoint Mapper) -------------------------------------- */
-.site-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
-.site-card { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2); }
+.site-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr)); gap: 10px; }
+/* Name on its own line with the full card width; buttons on a line below. */
+.site-card { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2); }
+.site-card-head { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.site-card-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 4px; }
+.site-card-actions a.btn { text-decoration: none; }
 .site-card-main { flex: 1; min-width: 0; }
-.site-card-name { font-weight: 600; }
+.site-card-name { font-weight: 600; overflow-wrap: break-word; }
 .site-card-meta { font-size: 12px; color: var(--text-muted); }
 
 .explorer-compare { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin-bottom: 12px; }
 .explorer-figure { margin: 0; min-width: 0; }
 .explorer-figure figcaption { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-weight: 600; font-size: 13px; }
 .explorer { border: 1px solid var(--border-strong); border-radius: 8px; overflow: hidden; background: var(--surface); box-shadow: var(--shadow); }
-.explorer-titlebar { display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: var(--surface-2); border-bottom: 1px solid var(--border); font-size: 12px; }
-.explorer-dots { display: flex; gap: 10px; color: var(--text-muted); letter-spacing: 2px; }
-.explorer-address { display: flex; align-items: center; gap: 6px; margin: 8px 10px; padding: 4px 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 12px; color: var(--text-2); }
+/* Plain panel header (not an input-like address bar: nothing here is clickable). */
+.explorer-address { display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: var(--surface-2); border-bottom: 1px solid var(--border); font-size: 12px; font-weight: 600; color: var(--text-2); }
 .explorer-tree { padding: 4px 10px 12px; font-size: 13px; max-height: 520px; overflow: auto; }
 .tree, .tree ul { list-style: none; margin: 0; padding: 0; }
 .tree ul { padding-left: 20px; border-left: 1px dotted var(--border-strong); margin-left: 9px; }
@@ -132,6 +145,9 @@
 .tree-row.is-file { padding-left: 20px; }
 .tree-row .file-ic { width: 18px; height: 18px; font-size: 8px; border-radius: 3px; }
 .tree-name { min-width: 0; overflow-wrap: anywhere; }
+/* A long label moves to the next line instead of squeezing the file name. */
+.tree-row { flex-wrap: wrap; }
+.tree-row .pill { white-space: nowrap; }
 .tree-row.is-tagged-to-move .tree-name, .tree-row.is-tagged-duplicate .tree-name { color: var(--text-2); }
 .tree-row.is-shortcut { background: color-mix(in srgb, var(--ic-shortcut) 12%, transparent); font-weight: 600; }
 .tree-more { padding-left: 24px; font-size: 12px; color: var(--text-muted); }
@@ -206,6 +222,9 @@ code { font-size: 12px; background: var(--surface-2); padding: 1px 5px; border-r
 /* --- Dialog --------------------------------------------------------------- */
 .dialog { width: min(520px, calc(100vw - 32px)); padding: 20px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
 .dialog::backdrop { background: rgb(0 0 0 / 0.4); }
+.dialog--wide { width: min(680px, calc(100vw - 32px)); }
+.dialog--wide .explorer-tree { max-height: 50vh; }
+.demo-banner { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 12px; padding: 8px 10px; border-radius: 6px; background: var(--warning-soft); color: var(--warning-text); font-size: 13px; }
 .dialog-title { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
 .dialog-body { color: var(--text-2); }
 .dialog-body ul { padding-left: 18px; }
@@ -227,13 +246,13 @@ code { font-size: 12px; background: var(--surface-2); padding: 1px 5px; border-r
 .action-row.is-done .action-title { color: var(--text-2); font-weight: 400; }
 .ic-line { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 
-/* --- Verkenner: sub-tabs ------------------------------------------------- */
+/* --- Bestanden: sub-tabs ------------------------------------------------- */
 .subtabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 16px; padding: 3px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border); width: fit-content; max-width: 100%; }
 .subtab { border: 0; background: transparent; padding: 6px 14px; border-radius: 6px; cursor: pointer; color: var(--text-2); font-weight: 600; }
 .subtab[aria-selected="true"] { background: var(--surface); color: var(--text); box-shadow: 0 1px 2px rgb(0 0 0 / 0.12); }
 .subtab:hover { color: var(--text); }
 
-/* --- Verkenner: ready list ------------------------------------------------- */
+/* --- Bestanden: ready list ------------------------------------------------- */
 .ready-row { align-items: flex-start; }
 .ready-reason { margin-top: 4px; font-size: 13px; color: var(--text); }
 .ready-target { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 13px; font-weight: 600; color: var(--text-2); }
@@ -242,7 +261,7 @@ code { font-size: 12px; background: var(--surface-2); padding: 1px 5px; border-r
 .row-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
 .file-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
 
-/* --- Verkenner: two Explorer windows, drag a file onto a team-site folder -- */
+/* --- Bestanden: two Explorer windows, drag a file onto a team-site folder -- */
 .board-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; margin-bottom: 12px; }
 .board-hint { max-width: 75ch; color: var(--text-2); }
 .filter-label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
@@ -269,7 +288,7 @@ body.is-dragging-file .sp-folder > summary .drop-hint { display: inline; }
 .sp-folder.is-drop-target { background: var(--brand-soft); border-radius: 4px; }
 .sp-folder.is-drop-target > summary .tree-row { outline: 2px solid var(--brand); outline-offset: -2px; background: var(--brand-soft); }
 
-/* --- Verkenner: "Voor en na" explanation ----------------------------------- */
+/* --- Bestanden: "Voor en na" explanation ----------------------------------- */
 .move-explainer { max-width: 90ch; margin-bottom: 14px; padding: 10px 14px; border-left: 4px solid var(--brand); border-radius: 6px; background: var(--brand-soft); }
 
 /* --- Move dialog ----------------------------------------------------------- */
@@ -309,10 +328,9 @@ body.is-dragging-file .sp-folder > summary .drop-hint { display: inline; }
   .grid-2, .explorer-compare, .board { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 640px) {
-  .teams-rail, .teams-search, .sim-user-text { display: none; }
+  .teams-rail, .teams-search { display: none; }
   .teams-main { padding: 0 16px 32px; }
   .tab-header { margin: 0 -16px 16px; padding: 0 16px; }
-  .sim-user { margin-left: 0; }
   .range-row { grid-template-columns: minmax(0, 1fr) auto; }
   .range-track { grid-column: 1 / -1; grid-row: 2; }
 }

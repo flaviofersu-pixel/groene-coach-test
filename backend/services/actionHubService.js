@@ -3,7 +3,7 @@
  * @description Business logic behind the Teams "Actie-hub".
  *
  *  - scanOneDrive          "Klaar om te verhuizen": shared OneDrive files + suggested team site + reason
- *  - listOneDrive          all own OneDrive files (left column of the Verkenner)
+ *  - listOneDrive          all own OneDrive files (left column of the Bestanden tab)
  *  - actionSummary         the action list of the Actie-hub (counts + estimated savings)
  *  - duplicateChains       identical copies (same content hash) in the user's OWN OneDrive
  *  - migrateToSharePoint   "Ja, verhuis het"
@@ -222,7 +222,7 @@ export function createActionHubService({ db, graph, coefficients: c, telemetry, 
     },
 
     /**
-     * Left column of the Verkenner: ALL own OneDrive files (metadata only).
+     * Left column of the Bestanden tab: ALL own OneDrive files (metadata only).
      * GET /me/drive/root/delta?$select=id,name,size,lastModifiedDateTime,parentReference,shared,file
      *
      * Only `lastModifiedDateTime` is reliable for every file. A real "last opened" date

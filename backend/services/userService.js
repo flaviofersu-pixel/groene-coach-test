@@ -17,7 +17,7 @@ import { HttpError } from '../errors.js';
 /** Max files listed per folder in the Explorer preview. */
 const FILES_PER_FOLDER = 6;
 
-/** Max files listed per folder in the Verkenner's SharePoint window. */
+/** Max files listed per folder in the Bestanden tab's SharePoint window. */
 const TREE_FILES_PER_FOLDER = 25;
 
 /**
@@ -49,6 +49,7 @@ export function createUserService({ db, graph, telemetry, now }) {
       WHERE l.user_id = ? AND l.action = 'migrate' AND f.current_location = 'SharePoint'
       GROUP BY f.id`),
     siteFolders: db.prepare('SELECT id, name FROM sharepoint_folders WHERE site_id = ? ORDER BY name'),
+    siteById: db.prepare('SELECT id, display_name, library_name FROM sharepoint_sites WHERE id = ?'),
     folderFiles: db.prepare(`SELECT id, filename, size_mb, times_shared FROM files
                              WHERE sharepoint_folder_id = ? AND status = 'active' ORDER BY filename`),
     treeFiles: db.prepare(`SELECT id, filename, size_mb, last_modified FROM files
@@ -86,7 +87,7 @@ export function createUserService({ db, graph, telemetry, now }) {
     },
 
     /**
-     * POST /api/user/map-sharepoint-shortcut ("Toon map in Verkenner").
+     * POST /api/user/map-sharepoint-shortcut ("Snelkoppeling toevoegen aan Mijn bestanden").
      * Inserts the shortcut link object into the OneDrive root (idempotent).
      */
     mapSharePointShortcut(actor, { siteId }) {
@@ -106,7 +107,7 @@ export function createUserService({ db, graph, telemetry, now }) {
     },
 
     /**
-     * Folder tree of every team site the user is a member of, for the Verkenner's
+     * Folder tree of every team site the user is a member of, for the Bestanden tab's
      * right-hand window: site -> library folders -> files (names, sizes, dates only).
      * The user drags a OneDrive file onto the folder where it belongs.
      *
@@ -163,7 +164,22 @@ export function createUserService({ db, graph, telemetry, now }) {
         ].sort((a, b) => a.name.localeCompare(b.name, 'nl')),
       }));
 
+      // "Na" always shows your own team's folder. Not added yet? Then it is shown as a
+      // proposal ("Voorstel"), so the title "met je teammap erbij" is always true.
+      const teamSiteId = q.departmentSite.get(actor.department)?.id;
+      const teamSite = teamSiteId ? q.siteById.get(teamSiteId) : null;
+      const proposal = teamSite && !shortcuts.some((s) => s.target_site_id === teamSite.id)
+        ? [{
+          type: 'shortcut',
+          name: `${teamSite.display_name} - ${teamSite.library_name}`,
+          site_id: teamSite.id,
+          is_proposal: true,
+          children: libraryChildren(teamSite.id, movedIds),
+        }]
+        : [];
+
       const after = [
+        ...proposal,
         ...shortcuts.map((s) => ({
           type: 'shortcut',
           name: s.name,

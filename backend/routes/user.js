@@ -1,6 +1,6 @@
 /**
  * @file routes/user.js
- * @description Profile and the SharePoint Mapper ("Toon map in Verkenner").
+ * @description Profile and the SharePoint Mapper ("Snelkoppeling toevoegen aan Mijn bestanden").
  */
 
 import { Router } from 'express';
@@ -19,7 +19,7 @@ export function createUserRouter(users) {
     res.status(result.created ? 201 : 200).json(result);
   });
 
-  /** GET /api/user/sharepoint-tree: folders of the user's team sites (Verkenner, right window). */
+  /** GET /api/user/sharepoint-tree: folders of the user's team sites (Bestanden tab, right window). */
   router.get('/sharepoint-tree', (req, res) => res.json(users.sharePointTree(req.actor)));
 
   /** GET /api/user/explorer-view: before/after trees for the Explorer preview. */

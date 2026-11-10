@@ -1,6 +1,6 @@
 /**
  * @file preview.js
- * @description Verkenner part "Voor en na": how the user's OneDrive looks in
+ * @description Bestanden part "Voor en na": how the user's OneDrive looks in
  * Windows Explorer (via the standard OneDrive sync client) before and after the
  * coach. Moved files are labelled with their destination team site BY NAME.
  * The preview is drawn in the browser; nothing on the laptop is modified.
@@ -43,6 +43,7 @@ function renderNode(node, { openFolders }) {
   const row = append(el('div', `tree-row${node.type === 'shortcut' ? ' is-shortcut' : ''}`),
     icon(node.type === 'shortcut' ? 'shortcut' : 'folder'), el('span', 'tree-name', node.name));
   if (node.is_new) row.append(el('span', 'pill pill--brand', 'Nieuw'));
+  if (node.is_proposal) row.append(el('span', 'pill pill--muted', 'Voorstel: nog niet toegevoegd'));
   if (node.type === 'folder') row.append(el('span', 'small muted', `(${node.children.length + (node.more ?? 0)})`));
 
   const ul = el('ul');
@@ -75,7 +76,7 @@ export function createPreview(ctx) {
       renderWindow($('explorer-after'), view.after.items, view.root_name, { openFolders: true });
       const removed = view.before.personal_file_count - view.after.personal_file_count;
       $('explorer-summary').textContent = view.shortcuts_mapped === 0
-        ? 'Tip: kies in "Mijn SharePoint-sites" voor "Toon map in Verkenner" om je teammap toe te voegen.'
+        ? 'Je teammap in "Na" is een voorstel. Voeg hem toe via Bestanden › Mijn SharePoint-sites › "Snelkoppeling toevoegen".'
         : `${plural(removed, 'bestand', 'bestanden')} minder in je persoonlijke OneDrive · ${plural(view.shortcuts_mapped, 'teammap', 'teammappen')} met 1 klik bereikbaar.`;
     },
   };

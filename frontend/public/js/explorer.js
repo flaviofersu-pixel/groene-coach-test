@@ -1,13 +1,13 @@
 /**
  * @file explorer.js
- * @description The "Verkenner" tab: a small shell with four parts (sub-tabs).
+ * @description The "Bestanden" tab: a small shell with four parts (sub-tabs).
  *
  *   Verhuizen             moveBoard.js   ready list + drag OneDrive -> SharePoint
  *   Dubbele kopieën       duplicates.js
  *   Mijn SharePoint-sites sites.js
  *   Voor en na            preview.js     before/after preview in Windows Explorer
  *
- * The Actie-hub opens the Verkenner on a specific part via `select()`, e.g.
+ * The Actie-hub opens the Bestanden tab on a specific part via `select()`, e.g.
  * { view: 'move', filter: 'old' } shows the OneDrive column filtered on old files.
  */
 

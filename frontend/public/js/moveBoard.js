@@ -1,6 +1,6 @@
 /**
  * @file moveBoard.js
- * @description Verkenner part "Verhuizen": two windows that look like Windows
+ * @description Bestanden part "Verhuizen": two windows that look like Windows
  * Explorer, side by side.
  *
  *   left   "Jouw OneDrive": your folders and files (draggable)

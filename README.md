@@ -5,7 +5,7 @@
 OpruimCoach is a **Microsoft Teams web app** plus a simulated **Outlook Smart Alert**. It politely coaches civil servants to:
 
 1. move intensively shared files from their personal **OneDrive** to the department's **SharePoint** site (the right place under the Archiefwet);
-2. add their department library to OneDrive with **one click** ("Toon map in Verkenner");
+2. add their department library to OneDrive with **one click** ("Snelkoppeling toevoegen aan Mijn bestanden");
 3. clean up **identical copies** (only after confirmation, via the recycle bin, and reversible);
 4. share **links instead of attachments** (1 attachment to 20 people = 20× storage).
 
@@ -237,7 +237,7 @@ Business rules (share threshold 2, snooze 7 days, minimum group size 3, audit re
 ├── frontend/
 │   ├── server.js                 Static files + /api proxy + strict CSP
 │   └── public/
-│       ├── index.html            Teams app (Actie-hub, Verkenner, Impact, Privacy)
+│       ├── index.html            Teams app (Actie-hub, Bestanden, Impact, Privacy)
 │       ├── outlook.html          Outlook compose + Smart Alert
 │       ├── css/                  base.css (tokens, light/dark) · teams.css · outlook.css
 │       └── js/                   api · dom · format · app · actionHub · explorer · impact · about · outlook

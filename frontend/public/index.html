@@ -3,9 +3,9 @@
   index.html — "OpruimCoach" as a Microsoft Teams personal app (simulation)
 
   Tabs:
-    Actie-hub   list of recommended actions (each opens the Verkenner on the right part)
+    Actie-hub   list of recommended actions (each opens the Bestanden tab on the right part)
                 + a small "what your actions bring" summary
-    Verkenner   Verhuizen (two Explorer windows: drag a file onto a team-site folder,
+    Bestanden   Verhuizen (two Explorer windows: drag a file onto a team-site folder,
                 + ready list), Dubbele kopieën,
                 Mijn SharePoint-sites, Voor en na (before/after preview)
   Pages in the footer (not tabs: reference information you do not need every day):
@@ -32,14 +32,19 @@
   <!-- Simulated Teams top bar + demo controls -->
   <header class="teams-topbar">
     <div class="teams-search" aria-hidden="true">Zoeken</div>
-    <div class="sim-user">
-      <span class="sim-badge">Simulatie</span>
-      <label class="sim-user-label">
-        <span class="sim-user-text">Ingelogd als</span>
-        <select id="user-select" class="sim-select" aria-label="Gesimuleerde gebruiker"></select>
-      </label>
-      <a class="sim-link" href="outlook.html">Outlook (Smart Alert) →</a>
-    </div>
+    <!-- Demo menu: controls of the SIMULATION only, not part of OpruimCoach.
+         In the real Teams app there is no user picker and no Outlook link. -->
+    <details class="demo-menu" id="demo-menu">
+      <summary class="demo-summary"><span class="sim-badge">Demo</span> <span id="demo-user">Gebruiker kiezen</span> <span aria-hidden="true">▾</span></summary>
+      <div class="demo-panel">
+        <p class="demo-note">Alleen voor de demonstratie. Dit hoort niet bij OpruimCoach.</p>
+        <label class="demo-field">
+          <span>Ingelogd als</span>
+          <select id="user-select" class="sim-select" aria-label="Gesimuleerde gebruiker"></select>
+        </label>
+        <a class="demo-link" href="outlook.html">Outlook-simulatie (Smart Alert) →</a>
+      </div>
+    </details>
   </header>
 
   <div class="teams-shell">
@@ -59,7 +64,7 @@
         </div>
         <div class="tabs" role="tablist" aria-label="OpruimCoach-tabbladen">
           <button class="tab" role="tab" id="tab-btn-hub" aria-controls="tab-hub" aria-selected="true" type="button">Actie-hub</button>
-          <button class="tab" role="tab" id="tab-btn-explorer" aria-controls="tab-explorer" aria-selected="false" tabindex="-1" type="button">Verkenner</button>
+          <button class="tab" role="tab" id="tab-btn-explorer" aria-controls="tab-explorer" aria-selected="false" tabindex="-1" type="button">Bestanden</button>
         </div>
       </div>
 
@@ -71,7 +76,7 @@
 
       <!-- ===================== Actie-hub ===================== -->
       <!-- A list of concrete actions, like "Energy recommendations" in Windows Settings.
-           Each button opens the Verkenner with the right part already selected. -->
+           Each button opens the Bestanden tab with the right part already selected. -->
       <section id="tab-hub" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-hub">
         <div class="intro">
           <h2 id="hub-greeting" tabindex="-1">Welkom</h2>
@@ -101,9 +106,9 @@
         </section>
       </section>
 
-      <!-- ===================== Verkenner ===================== -->
+      <!-- ===================== Bestanden ===================== -->
       <section id="tab-explorer" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-explorer" hidden>
-        <div class="subtabs" role="tablist" aria-label="Onderdelen van de Verkenner">
+        <div class="subtabs" role="tablist" aria-label="Onderdelen van Bestanden">
           <button class="subtab" role="tab" id="sub-btn-move" aria-controls="sub-move" aria-selected="true" type="button" data-view="move">Verhuizen</button>
           <button class="subtab" role="tab" id="sub-btn-duplicates" aria-controls="sub-duplicates" aria-selected="false" tabindex="-1" type="button" data-view="duplicates">Dubbele kopieën</button>
           <button class="subtab" role="tab" id="sub-btn-sites" aria-controls="sub-sites" aria-selected="false" tabindex="-1" type="button" data-view="sites">Mijn SharePoint-sites</button>
@@ -167,7 +172,7 @@
             <div class="panel-head">
               <div>
                 <h3 class="panel-title" id="sites-title">Mijn SharePoint-sites</h3>
-                <p class="panel-sub">De teams en sites waar je lid van bent: hier kunnen je bestanden naartoe. Met "Toon map in Verkenner" zet je de teammap in je OneDrive.</p>
+                <p class="panel-sub">De teams en sites waar je lid van bent: hier kunnen je bestanden naartoe. Met "Snelkoppeling toevoegen" staat de teammap ook in Mijn bestanden in je OneDrive.</p>
               </div>
             </div>
             <ul id="site-list" class="site-list"></ul>
@@ -290,6 +295,16 @@
   </div>
 
   <!-- Confirmation dialog for duplicate clean-up (explicit consent) -->
+  <!-- Demo only: preview of a team site, because the demo SharePoint addresses do not exist -->
+  <dialog id="site-dialog" class="dialog dialog--wide" aria-labelledby="site-dialog-title">
+    <h2 id="site-dialog-title" class="dialog-title">Teamsite</h2>
+    <p class="demo-banner"><span class="sim-badge">Demo</span> In de echte OpruimCoach opent deze knop de teamsite in SharePoint, in een nieuw tabblad. Hier zie je een voorbeeld van de bibliotheek.</p>
+    <div id="site-dialog-tree" class="explorer"></div>
+    <div class="dialog-actions">
+      <button type="button" class="btn btn-secondary" id="site-dialog-close">Sluiten</button>
+    </div>
+  </dialog>
+
   <dialog id="confirm-dialog" class="dialog" aria-labelledby="confirm-title">
     <h2 id="confirm-title" class="dialog-title">Kopieën opruimen?</h2>
     <div id="confirm-body" class="dialog-body"></div>
