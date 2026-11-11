@@ -1,6 +1,6 @@
 /**
  * @file duplicates.js
- * @description Bestanden part "Dubbele kopieën": identical copies in the user's
+ * @description Bestanden part "Dubbele bestanden": identical copies in the user's
  * own OneDrive (and the original on a team site, when there is one).
  *
  * Clean-up always needs an explicit confirmation, sends copies to the recycle

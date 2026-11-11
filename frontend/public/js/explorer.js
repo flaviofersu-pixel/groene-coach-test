@@ -3,7 +3,7 @@
  * @description The "Bestanden" tab: a small shell with three parts (sub-tabs).
  *
  *   Verhuizen             moveBoard.js   ready list, "Eerst nakijken", optional "Zelf slepen"
- *   Dubbele kopieën       duplicates.js
+ *   Dubbele bestanden     duplicates.js
  *   Mijn SharePoint-sites sites.js
  *
  * ("Voor en na" is a demo page for the product owner now, in the Demo menu.)
