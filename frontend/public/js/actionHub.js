@@ -37,8 +37,8 @@ const ACTION_TEXT = {
   },
   duplicates: {
     icon: 'copies',
-    title: (n) => `Ruim ${plural(n, 'dubbele kopie', 'dubbele kopieën')} op`,
-    doneTitle: 'Geen dubbele kopieën in je OneDrive',
+    title: (n) => `Ruim ${plural(n, 'dubbel bestand', 'dubbele bestanden')} op`,
+    doneTitle: 'Geen dubbele bestanden in je OneDrive',
     button: () => 'Kopieën opruimen',
     benefits: ['Ruimte in je OneDrive'],
     target: { view: 'duplicates' },

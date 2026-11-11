@@ -16,7 +16,7 @@ const $ = (id) => document.getElementById(id);
 
 /** How we recognise copies (behind the "i" next to the title). */
 const DETECTION_INFO = () => [
-  el('p', 'info-title', 'Hoe vinden we dubbele kopieën?'),
+  el('p', 'info-title', 'Hoe vinden we dubbele bestanden?'),
   el('p', '', 'Microsoft 365 houdt van elk bestand een soort vingerafdruk bij (een hash). ' +
     'Twee bestanden met dezelfde vingerafdruk zijn precies gelijk, ook als de naam anders is, zoals "Kopie van …".'),
   el('p', '', 'We lezen de inhoud van je bestanden niet. We kijken alleen in je eigen OneDrive en op teamsites waar je lid van bent.'),
@@ -52,7 +52,7 @@ export function createDuplicates(ctx) {
   function render() {
     const container = $('chain-list');
     container.replaceChildren(...state.chains.map(chainCard));
-    if (state.chains.length === 0) container.append(el('p', 'empty', 'Geen dubbele kopieën gevonden in je OneDrive.'));
+    if (state.chains.length === 0) container.append(el('p', 'empty', 'Geen dubbele bestanden gevonden in je OneDrive.'));
   }
 
   /** Explicit consent dialog before anything goes to the recycle bin. */
@@ -91,7 +91,7 @@ export function createDuplicates(ctx) {
     dialog.showModal();
   }
 
-  $('chains-title').after(infoButton('Uitleg over dubbele kopieën', DETECTION_INFO));
+  $('chains-title').after(infoButton('Uitleg over dubbele bestanden', DETECTION_INFO));
 
   return {
     async load() {
